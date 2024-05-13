@@ -1,0 +1,57 @@
+# Senin
+[[senin]]
+jam = '22:26'
+file = 'upacara_kurang_5_menit.mp3'
+[[senin]]
+jam = '22:27'
+file = '1.mp3'
+[[senin]]
+jam = '22:28'
+file = '2.mp3'
+[[senin]]
+jam = '22:29'
+file = 'istirahat.mp3'
+[[senin]]
+jam = '22:30'
+file = 'istirahat_kurang_5_menit.mp3'
+[[senin]]
+jam = '22:31'
+file = '3.mp3'
+[[senin]]
+jam = '22:32'
+file = '4.mp3'
+[[senin]]
+jam = '22:33'
+file = '5.mp3'
+[[senin]]
+jam = '22:34'
+file = 'istirahat.mp3'
+[[senin]]
+jam = '22:35'
+file = 'istirahat_kurang_5_menit.mp3'
+[[senin]]
+jam = '22:36'
+file = '6.mp3'
+[[senin]]
+jam = '22:37'
+file = '7.mp3'
+[[senin]]
+jam = '22:38'
+file = 'istirahat.mp3'
+[[senin]]
+jam = '22:39'
+file = 'istirahat_kurang_5_menit.mp3'
+[[senin]]
+jam = '22:40'
+file = '8.mp3'
+[[senin]]
+jam = '22:41'
+file = 'akhir_pelajaran.mp3'
+
+[[selasa]]
+jam = '00:00'
+file = '1.mp3'
+
+[[jumat]]
+jam = '00:00'
+file = '1.mp3'
