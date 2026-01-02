@@ -1,22 +1,38 @@
 # Program Bel Pembelajaran berbasis Python
 
 ## Cara Install
-__in progress__
+```bash
+uv sync
+```
 
 ## Cara Pakai
-Masukkan perintah
+
+### Cek konfigurasi
+Cek validitas konfigurasi dengan perintah
+```bash
+uv run python bel_pelajaran/cek_konfig.py [file konfig].toml
 ```
-python3 cek_konfig.py [file konfig].toml
+
+### Cek sound
+Test sound dengan perintah
+```bash
+uv run python bel_pelajaran/cek_sound.py
 ```
-pastikan tidak ada error        
-lalu jalankan dengan perintah
+
+### Jalankan bel
+Jalankan bel dengan perintah
+```bash
+uv run python bel_pelajaran/main.py [file konfig].toml
 ```
-python3 main.py [file konfig].toml
+
+Contoh:
+```bash
+uv run python bel_pelajaran/main.py konfig.toml
 ```
 
 Kredit:
 libs
-- pydub
+- playsound3
 - schedule
 - toml
 
