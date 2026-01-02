@@ -55,3 +55,11 @@ file = '1.mp3'
 [[jumat]]
 jam = '00:00'
 file = '1.mp3'
+
+[[jumat]]
+jam = '14:12'
+file = '1.mp3'
+
+[[jumat]]
+jam = '14:13'
+file = '2.mp3'
