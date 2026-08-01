@@ -1,0 +1,35 @@
+# Contoh konfigurasi Bel Pelajaran.
+#
+# Format: array of tables per hari (senin..sabtu). Setiap entri punya:
+#   jam  = "HH:MM"        (24 jam)
+#   file = nama file di folder assets/
+#
+# Hari yang tidak ditulis akan kosong, KECUALI rabu/kamis/sabtu yang akan
+# meniru jadwal "selasa" bila tidak didefinisikan (lihat konfig.toml).
+#
+# Periksa dengan:   bel check configs/example.toml
+
+[[senin]]
+jam = "07:00"
+file = "upacara_kurang_5_menit.mp3"
+[[senin]]
+jam = "08:20"
+file = "1.mp3"
+[[senin]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"
+
+# Selasa + turunannya (rabu/kamis/sabtu otomatis ikut)
+[[selasa]]
+jam = "07:00"
+file = "1.mp3"
+[[selasa]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"
+
+[[jumat]]
+jam = "07:00"
+file = "1.mp3"
+[[jumat]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"

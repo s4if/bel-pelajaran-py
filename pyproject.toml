@@ -1,0 +1,41 @@
+[project]
+name = "bel-pelajaran"
+version = "0.2.0"
+description = "Bel Pembelajaran sekolah — jadwal bel otomatis berbasis Python."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11,<3.14"
+authors = [{ name = "s4if" }]
+dependencies = [
+    # Audio backend: SDL_mixer bundles mp3 (libmpg123), ogg, flac, wav decoders.
+    # No external ffmpeg needed. Non-blocking playback. Wheels for cp311-cp313.
+    "pygame>=2.6,<3",
+    # Lightweight, familiar scheduler. (See ROADMAP for a future APScheduler swap.)
+    "schedule>=1.2,<2",
+    # NOTE: tomllib is stdlib since Python 3.11 — no third-party TOML lib needed.
+]
+
+[project.scripts]
+# Installs a `bel` console script after `uv sync` / `pip install .`
+bel = "app.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pyinstaller>=6",   # for `bel package` / building the exe (see README)
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
