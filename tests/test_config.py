@@ -24,18 +24,14 @@ def test_parse_basic():
     assert tt.total == 2
 
 
-def test_parse_inherits_from_selasa():
-    """rabu/kamis/sabtu absent -> copy selasa (legacy behaviour)."""
+def test_parse_omitted_days_are_empty():
     data = {"selasa": [{"jam": "08:00", "file": "1.mp3"}]}
     tt = parse_timetable(data)
     for day in ("rabu", "kamis", "sabtu"):
-        assert tt.bells_for(day) == [Bell("08:00", "1.mp3")]
-    # senin/jumat absent stay empty
-    assert tt.bells_for("senin") == []
-    assert tt.bells_for("jumat") == []
+        assert tt.bells_for(day) == []
 
 
-def test_parse_explicit_day_overrides_inheritance():
+def test_parse_explicit_day_is_loaded_independently():
     data = {
         "selasa": [{"jam": "08:00", "file": "1.mp3"}],
         "rabu": [{"jam": "09:00", "file": "2.mp3"}],
@@ -44,7 +40,7 @@ def test_parse_explicit_day_overrides_inheritance():
     assert tt.bells_for("rabu") == [Bell("09:00", "2.mp3")]
 
 
-def test_parse_explicit_empty_day_overrides_inheritance():
+def test_parse_explicit_empty_day_stays_empty():
     data = {
         "selasa": [{"jam": "08:00", "file": "1.mp3"}],
         "rabu": [],
@@ -53,7 +49,7 @@ def test_parse_explicit_empty_day_overrides_inheritance():
     tt = parse_timetable(data)
 
     assert tt.bells_for("rabu") == []
-    assert tt.bells_for("kamis") == [Bell("08:00", "1.mp3")]
+    assert tt.bells_for("kamis") == []
 
 
 def test_iteration_is_in_canonical_order():

@@ -6,9 +6,7 @@ Preserves the original legacy format:
     jam = '07:00'
     file = 'upacara_kurang_5_menit.mp3'
 
-A day may be omitted entirely. As in the original script, ``rabu`` / ``kamis`` /
-``sabtu`` inherit from ``selasa`` when absent, so a normal week needs only
-``senin`` + ``selasa`` + ``jumat``.
+A day may be omitted entirely; omitted days have no bells.
 
 Validation reports *every* problem in one pass (time format, missing sound
 file, duplicate times) instead of stopping at the first error like the old
@@ -24,13 +22,6 @@ from pathlib import Path
 
 from .models import DAYS, Bell, Timetable
 from .paths import assets_dir
-
-# Days that, when missing, copy another day's bells.
-INHERIT_FROM: dict[str, str] = {
-    "rabu": "selasa",
-    "kamis": "selasa",
-    "sabtu": "selasa",
-}
 
 
 @dataclass
@@ -67,14 +58,7 @@ def parse_timetable(data: dict) -> Timetable:
         bells: list[Bell] = []
         for e in entries:
             bells.append(Bell(jam=str(e["jam"]), file=str(e["file"])))
-        # Keep explicitly empty days. This lets ``rabu = []`` override Selasa
-        # inheritance, which is required when the GUI deletes every Rabu bell.
         raw[day] = bells
-
-    # apply inheritance: e.g. rabu/kamis/sabtu <- selasa
-    for day, src in INHERIT_FROM.items():
-        if day not in raw and src in raw:
-            raw[day] = list(raw[src])
 
     return Timetable(days=raw, sound_dir=str(data.get("sound_dir", "") or "").strip())
 

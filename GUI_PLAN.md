@@ -87,7 +87,7 @@ class Timetable:
 
 ### `app/config.py`  **[CHANGED — structural/filesystem validation split]**
 ```python
-def load_timetable(path: str | Path) -> Timetable          # reads TOML, applies inheritance
+def load_timetable(path: str | Path) -> Timetable          # reads TOML
 def parse_timetable(data: dict) -> Timetable               # from already-parsed dict
 def validate_timetable(timetable: Timetable) -> ValidationResult  # no filesystem access
 def resolve_sound_dir(timetable: Timetable) -> Path                # empty -> assets/
@@ -123,9 +123,8 @@ Decisions:
   its dropdown so the teacher can repair either the path or filename.
 - Saving emits `sound_dir = ""` for the default, otherwise an absolute path.
 
-Inheritance rule remains: `rabu`/`kamis`/`sabtu` copy `selasa` when absent.
-Explicitly empty days (for example `rabu = []`) override inheritance. The GUI
-tracks explicitly defined days so saving does not expand inherited days.
+Days omitted from the TOML configuration remain empty. The GUI tracks
+explicitly defined days so saving does not add omitted days.
 
 ### `app/audio.py`  **[CHANGES — rewritten in Phase 2]**
 It now provides `AudioBackend` (Protocol), **`QtMultimediaBackend`**, and
@@ -160,15 +159,19 @@ class BellScheduler:
 (§4.2); the blocking `run()` is kept only so Qt-free unit tests / `--dry-run`
 still work with `NullBackend`.
 
-### `app/paths.py`  (unchanged)
+### `app/paths.py`  (updated — platform-standard user directories)
 ```python
 def is_frozen() -> bool
 def app_root() -> Path        # _MEIPASS when frozen, else project root
 def assets_dir() -> Path      # app_root()/"assets"
 def configs_dir() -> Path     # app_root()/"configs"
 def asset(filename: str) -> Path
-def user_data_dir() -> Path   # ~/.bel-pelajaran  (always writable; use for saved user configs)
+def config_dir() -> Path      # XDG_CONFIG_HOME / APPDATA / macOS Application Support
+def data_dir() -> Path        # XDG_DATA_HOME / LOCALAPPDATA / macOS Application Support
+def state_dir() -> Path       # XDG_STATE_HOME / LOCALAPPDATA / macOS Logs
+def schedules_dir() -> Path   # config_dir()/schedules
 def logs_dir() -> Path
+def user_data_dir() -> Path   # compatibility alias for config_dir()
 ```
 
 ---
@@ -490,7 +493,7 @@ Each step ends with **Done when:** acceptance criteria.
   sound-picker combo. Edits mutate the working `Timetable`; the model emits
   `dataChanged`/`layoutChanged`.
 - "Save" writes via `save_timetable()`; "Save As…" picks a new filename under
-  `user_data_dir()/schedules/` (or `configs/`). Warn that comments are dropped.
+  `schedules_dir()` (or `configs/`). Warn that comments are dropped.
 - Re-validate before Save; block + show errors if invalid.
 - **Done when:** a teacher can build a full week schedule from scratch and the
   saved file passes `uv run bel check <file>` (round-trip proven).
@@ -870,7 +873,7 @@ subprocess.check_call(cmd)
    codec-risk question for the uniform fleet.)
 2. ~~Save edited schedules into `configs/` (repo) or `user_data_dir()` (per-user)?~~
    **Decided & implemented:** "Simpan Sebagai…" defaults to
-   `user_data_dir()/schedules/`; "Open…" starts in `configs/`; shipped `configs/`
+   `schedules_dir()`; "Open…" starts in `configs/`; shipped `configs/`
    stay read-only examples.
 3. Is losing TOML comments on Save acceptable? (Assumed yes.)
 4. Should the GUI be able to install itself to autostart? (Defer.)

@@ -12,8 +12,8 @@ from app.models import DAYS, Timetable
 def read_defined_days(path: str | Path) -> set[str]:
     """Return day keys explicitly present in a TOML schedule.
 
-    The config loader expands inherited days. Keeping this separate set lets the
-    GUI omit untouched inherited days when it writes the schedule back.
+    Keeping this separate set lets the GUI preserve omitted days when it writes
+    the schedule back.
     """
     with Path(path).open("rb") as file:
         data = tomllib.load(file)
@@ -29,7 +29,7 @@ def save_timetable(
     """Write a timetable as TOML and return the destination path.
 
     If ``defined_days`` is supplied, only those days are serialized. This
-    preserves the loader's Selasa inheritance for untouched Rabu/Kamis/Sabtu.
+    preserves omitted days as omitted when the GUI saves a schedule.
     Comments and original formatting are intentionally not preserved.
     """
     try:

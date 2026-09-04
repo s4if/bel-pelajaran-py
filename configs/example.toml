@@ -7,8 +7,7 @@ sound_dir = ""
 #   jam  = "HH:MM"        (24 jam)
 #   file = nama file di folder suara
 #
-# Hari yang tidak ditulis akan kosong, KECUALI rabu/kamis/sabtu yang akan
-# meniru jadwal "selasa" bila tidak didefinisikan (lihat konfig.toml).
+# Hari yang tidak ditulis akan kosong.
 #
 # Periksa dengan:   bel check configs/example.toml
 
@@ -22,11 +21,35 @@ file = "1.mp3"
 jam = "16:30"
 file = "akhir_pelajaran.mp3"
 
-# Selasa + turunannya (rabu/kamis/sabtu otomatis ikut)
+# Selasa
 [[selasa]]
 jam = "07:00"
 file = "1.mp3"
 [[selasa]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"
+
+# Rabu
+[[rabu]]
+jam = "07:00"
+file = "1.mp3"
+[[rabu]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"
+
+# Kamis
+[[kamis]]
+jam = "07:00"
+file = "1.mp3"
+[[kamis]]
+jam = "16:30"
+file = "akhir_pelajaran.mp3"
+
+# Sabtu
+[[sabtu]]
+jam = "07:00"
+file = "1.mp3"
+[[sabtu]]
 jam = "16:30"
 file = "akhir_pelajaran.mp3"
 

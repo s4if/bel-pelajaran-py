@@ -14,7 +14,8 @@ Fase **0 (pengerasan mesin)** dan **1 (pemisahan layer)** selesai. Implementasi 
 
 - memutar suara secara **non-blocking** (suara panjang tidak akan menunda/men-skip bel berikutnya),
 - **tahan error** — satu file rusak/hilang tidak akan menghentikan jadwal seharian,
-- mencatat **log** ke konsol + file (`~/.bel-pelajaran/logs/bel.log`),
+- mencatat **log** ke konsol + file pada folder state standar platform
+  (Linux: `$XDG_STATE_HOME/bel-pelajaran/logs/`, Windows: `%LOCALAPPDATA%\\bel-pelajaran\\logs\\`),
 - memvalidasi konfigurasi dan melaporkan **semua** error sekaligus,
 - resolusi path yang sama untuk mode `uv run` maupun **exe hasil PyInstaller**.
 
@@ -97,7 +98,10 @@ meminta konfirmasi sebelum menghentikan bell dan menawarkan Simpan/Buang/Batal
 jika jadwal masih memiliki perubahan yang belum disimpan. Banner error dapat
 ditutup kapan saja lewat tombol **×** di sisi kanan pemberitahuan.
 
-Folder MP3 dapat diganti melalui **Aplikasi → Folder Suara…**. Path absolutnya
+Jadwal baru dari **Simpan Sebagai…** disimpan di folder konfigurasi standar
+platform: `$XDG_CONFIG_HOME/bel-pelajaran/schedules/` di Linux (default
+`~/.config`) atau `%APPDATA%\\bel-pelajaran\\schedules\\` di Windows. Folder
+MP3 dapat diganti melalui **Aplikasi → Folder Suara…**. Path absolutnya
 disimpan di file TOML jadwal dan dipakai oleh dropdown suara, pratinjau, startup
 self-test, dan scheduler. Gunakan **Folder Bawaan** untuk menyimpan nilai kosong
 dan kembali ke `assets/`. Jadwal tetap dapat dibuka jika folder/file hilang agar
@@ -121,7 +125,7 @@ file = "upacara_kurang_5_menit.mp3"    # nama file di sound_dir
 [[selasa]]
 jam  = "07:00"
 file = "1.mp3"
-# rabu/kamis/sabtu tidak ditulis -> otomatis ikut "selasa"
+# Hari yang tidak ditulis tidak memiliki bell.
 ```
 
 Nilai `file` tetap berupa nama file saja. `sound_dir` harus kosong atau berupa

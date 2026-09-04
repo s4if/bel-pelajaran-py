@@ -22,7 +22,7 @@ def test_save_timetable_round_trips(tmp_path):
     assert loaded.days == timetable.days
 
 
-def test_save_preserves_untouched_inheritance(tmp_path):
+def test_save_preserves_untouched_omitted_days(tmp_path):
     source = tmp_path / "source.toml"
     source.write_text(
         '[[selasa]]\njam = "08:00"\nfile = "1.mp3"\n',
@@ -30,8 +30,6 @@ def test_save_preserves_untouched_inheritance(tmp_path):
     )
     timetable = load_timetable(source)
     timetable.days["selasa"][0] = Bell("09:15", "2.mp3")
-    for day in ("rabu", "kamis", "sabtu"):
-        timetable.days[day] = list(timetable.days["selasa"])
     destination = tmp_path / "saved.toml"
 
     save_timetable(
@@ -45,8 +43,9 @@ def test_save_preserves_untouched_inheritance(tmp_path):
     assert set(raw) == {"sound_dir", "selasa"}
     assert raw["sound_dir"] == ""
     loaded = load_timetable(destination)
-    for day in ("selasa", "rabu", "kamis", "sabtu"):
-        assert loaded.bells_for(day) == [Bell("09:15", "2.mp3")]
+    assert loaded.bells_for("selasa") == [Bell("09:15", "2.mp3")]
+    for day in ("rabu", "kamis", "sabtu"):
+        assert loaded.bells_for(day) == []
 
 
 def test_save_writes_absolute_sound_directory(tmp_path):
@@ -61,7 +60,7 @@ def test_save_writes_absolute_sound_directory(tmp_path):
     assert loaded.sound_dir == str(sound_dir.resolve())
 
 
-def test_save_explicit_empty_day_blocks_inheritance(tmp_path):
+def test_save_explicit_empty_day_stays_empty(tmp_path):
     timetable = Timetable(
         days={
             "selasa": [Bell("08:00", "1.mp3")],
@@ -78,4 +77,4 @@ def test_save_explicit_empty_day_blocks_inheritance(tmp_path):
     loaded = load_timetable(destination)
 
     assert loaded.bells_for("rabu") == []
-    assert loaded.bells_for("kamis") == [Bell("08:00", "1.mp3")]
+    assert loaded.bells_for("kamis") == []

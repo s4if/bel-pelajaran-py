@@ -30,9 +30,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.config import INHERIT_FROM, validate_timetable
+from app.config import validate_timetable
 from app.models import DAYS, DAY_LABEL, Bell, Timetable
-from app.paths import assets_dir, configs_dir, user_data_dir
+from app.paths import assets_dir, configs_dir, schedules_dir
 
 from .controller import BellController
 from .schedule_table import BellsModel, SoundDelegate, TimeDelegate
@@ -591,21 +591,12 @@ class MainWindow(QMainWindow):
         day = self.day_selector.currentData()
         if day:
             self._defined_days.add(day)
-        self._sync_inherited_days(day)
         if self.controller.is_running:
             self.controller.stop()
             self.statusBar().showMessage("Jadwal berubah; bel dihentikan sampai dimulai lagi.")
         self._dirty = True
         self.day_count_label.setText(f"{self.schedule_model.rowCount()} bell")
         self._update_window_title()
-
-    def _sync_inherited_days(self, changed_day: str | None) -> None:
-        timetable = self.controller.timetable
-        if timetable is None or changed_day != "selasa":
-            return
-        for target, source in INHERIT_FROM.items():
-            if target not in self._defined_days:
-                timetable.days[target] = list(timetable.bells_for(source))
 
     def _preview_sound(self, filename: str) -> None:
         self.notice_frame.hide()
@@ -642,8 +633,7 @@ class MainWindow(QMainWindow):
         return self._write_schedule(self.controller.config_path)
 
     def _save_schedule_as(self) -> bool:
-        schedule_dir = user_data_dir() / "schedules"
-        schedule_dir.mkdir(parents=True, exist_ok=True)
+        schedule_dir = schedules_dir()
         current = self.controller.config_path
         default_name = current.name if current is not None else "jadwal_baru.toml"
         filename, _selected_filter = QFileDialog.getSaveFileName(

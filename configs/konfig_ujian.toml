@@ -55,8 +55,87 @@ file = 'waktu_ujian_kurang_5_menit.mp3'
 [[selasa]]
 jam = '11:15'
 file = 'waktu_ujian_telah_habis.mp3'
-# Rabu, Kamis, Sabtu ikut Hari Selasa!
 
+# Rabu
+[[rabu]]
+jam = '07:15'
+file = 'masuk_ruang_ujian.mp3'
+[[rabu]]
+jam = '07:30'
+file = 'mengerjakan_ujian.mp3'
+[[rabu]]
+jam = '08:55'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[rabu]]
+jam = '09:00'
+file = 'waktu_ujian_telah_habis.mp3'
+# jam 2
+[[rabu]]
+jam = '09:30'
+file = 'masuk_ruang_ujian.mp3'
+[[rabu]]
+jam = '09:45'
+file = 'mengerjakan_ujian.mp3'
+[[rabu]]
+jam = '11:10'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[rabu]]
+jam = '11:15'
+file = 'waktu_ujian_telah_habis.mp3'
+
+# Kamis
+[[kamis]]
+jam = '07:15'
+file = 'masuk_ruang_ujian.mp3'
+[[kamis]]
+jam = '07:30'
+file = 'mengerjakan_ujian.mp3'
+[[kamis]]
+jam = '08:55'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[kamis]]
+jam = '09:00'
+file = 'waktu_ujian_telah_habis.mp3'
+# jam 2
+[[kamis]]
+jam = '09:30'
+file = 'masuk_ruang_ujian.mp3'
+[[kamis]]
+jam = '09:45'
+file = 'mengerjakan_ujian.mp3'
+[[kamis]]
+jam = '11:10'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[kamis]]
+jam = '11:15'
+file = 'waktu_ujian_telah_habis.mp3'
+
+# Sabtu
+[[sabtu]]
+jam = '07:15'
+file = 'masuk_ruang_ujian.mp3'
+[[sabtu]]
+jam = '07:30'
+file = 'mengerjakan_ujian.mp3'
+[[sabtu]]
+jam = '08:55'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[sabtu]]
+jam = '09:00'
+file = 'waktu_ujian_telah_habis.mp3'
+# jam 2
+[[sabtu]]
+jam = '09:30'
+file = 'masuk_ruang_ujian.mp3'
+[[sabtu]]
+jam = '09:45'
+file = 'mengerjakan_ujian.mp3'
+[[sabtu]]
+jam = '11:10'
+file = 'waktu_ujian_kurang_5_menit.mp3'
+[[sabtu]]
+jam = '11:15'
+file = 'waktu_ujian_telah_habis.mp3'
 
 # Jum'at (apostrop dihilangkan)
 [[jumat]]
