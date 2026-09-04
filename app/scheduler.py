@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import datetime
+from pathlib import Path
 from typing import Callable
 
 import schedule as sched_lib
@@ -45,9 +46,11 @@ class BellScheduler:
         *,
         on_fire: Callable[[str, Bell], None] | None = None,
         on_error: Callable[[str, Bell, BaseException], None] | None = None,
+        sound_dir: str | Path | None = None,
     ) -> None:
         self.timetable = timetable
         self.backend = backend
+        self.sound_dir = Path(sound_dir) if sound_dir is not None else None
         self._on_fire = on_fire
         self._on_error = on_error
         self._stop = threading.Event()
@@ -81,7 +84,11 @@ class BellScheduler:
     def _fire(self, day: str, bell: Bell) -> None:
         """Job callback. Must never raise — a crash here stops the whole day."""
         try:
-            path = asset(bell.file)
+            path = (
+                self.sound_dir / bell.file
+                if self.sound_dir is not None
+                else asset(bell.file)
+            )
             log.info(">>> BELL  [%s %s]  %s", day, bell.jam, bell.file)
             if not self.backend.play(path):
                 log.error("bell tidak terputar: %s %s (%s)", day, bell.jam, bell.file)

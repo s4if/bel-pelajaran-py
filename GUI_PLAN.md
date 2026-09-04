@@ -6,11 +6,17 @@
 > session context**; a human *or* an AI coding agent should be able to read this
 > and implement it end-to-end.
 >
-> **Status of the project today.** Phase 0 (engine hardening) and Phase 1 (layer
-> decoupling) are **done and tested**. Phase 2 **Step 0 is implemented**: pygame
-> has been removed, Qt Multimedia is the audio backend, scheduler callbacks/tick
-> are available, the startup audio self-test helper exists, and the CLI now runs
-> through a Qt event loop. The GUI remains for the next steps.
+> **Status of the project today (updated 2026-09-04).** Phase 0 and Phase 1 are
+> **done and tested**. Phase 2 **Steps 0–6 are implemented**, and the planned
+> Step 9 polish is also substantially complete. The GUI can create/open/edit/save
+> schedules, run the bell, preview sounds, control volume, show a live countdown,
+> minimize/close to tray, and guard destructive actions. Schedule TOML now owns
+> its sound-directory setting (`sound_dir`): an empty value uses bundled
+> `assets/`; a non-empty value must be absolute. Missing paths/files no longer
+> destroy or reject loaded `file` values; filesystem checks happen immediately
+> before Start and before editing a row. The suite currently has **53 passing
+> tests**. Step 7 remains optional; **Step 8 (packaging and clean-machine
+> validation) is the next required step**.
 
 ---
 
@@ -57,7 +63,7 @@ All UI strings are **Indonesian** (keep that). Code identifiers are English.
 These are the **stable surfaces** the GUI imports. Sections marked **[CHANGES]**
 are modified in Phase 2; the rest stays as-is.
 
-### `app/models.py`  (unchanged)
+### `app/models.py`  **[CHANGED — schedule-specific sound directory]**
 ```python
 DAYS: tuple[str, ...]              # ("senin","selasa","rabu","kamis","jumat","sabtu")
 WEEKDAY_TOKEN: dict[str,str]       # "senin"->"monday", ...
@@ -66,11 +72,12 @@ DAY_LABEL: dict[str,str]           # "senin"->"Senin", "jumat"->"Jum'at"
 @dataclass(frozen=True)
 class Bell:
     jam: str     # "HH:MM" 24-hour
-    file: str    # bare filename inside assets/
+    file: str    # bare filename inside configured sound dir (default: assets/)
 
 @dataclass
 class Timetable:
     days: dict[str, list[Bell]] = field(default_factory=dict)
+    sound_dir: str = ""  # absolute path; empty selects bundled assets/
     # iterates (day, bells) in canonical DAYS order
     def bells_for(self, day: str) -> list[Bell]
     @property
@@ -78,11 +85,13 @@ class Timetable:
     def all_bells(self) -> Iterator[tuple[str, Bell]]
 ```
 
-### `app/config.py`  (unchanged)
+### `app/config.py`  **[CHANGED — structural/filesystem validation split]**
 ```python
 def load_timetable(path: str | Path) -> Timetable          # reads TOML, applies inheritance
 def parse_timetable(data: dict) -> Timetable               # from already-parsed dict
-def validate_timetable(timetable: Timetable) -> ValidationResult
+def validate_timetable(timetable: Timetable) -> ValidationResult  # no filesystem access
+def resolve_sound_dir(timetable: Timetable) -> Path                # empty -> assets/
+def validate_sound_files(timetable: Timetable) -> ValidationResult # before Start
 def is_valid_time(s: str) -> bool
 
 @dataclass class ValidationError:  day:str; message:str; jam:str|None=None; file:str|None=None
@@ -90,13 +99,38 @@ def is_valid_time(s: str) -> bool
     @property
     def ok(self) -> bool
 ```
-Inheritance rule already implemented: `rabu`/`kamis`/`sabtu` copy `selasa` when
-absent. The GUI must preserve this (saving writes only what the user defined).
+Current TOML schema:
+```toml
+# Empty selects bundled assets/. A non-empty value must be an absolute path.
+sound_dir = ""
+# sound_dir = "D:/Bel Sekolah/suara"       # Windows example
+# sound_dir = "/opt/bel-sekolah/suara"    # Linux example
+
+[[senin]]
+jam = "07:00"
+file = "1.mp3"  # remains a bare filename
+```
+
+Decisions:
+- `sound_dir` belongs to each schedule file; it is **not** a global/per-user
+  `QSettings` value.
+- `validate_timetable()` checks time/duplicate/schema values without filesystem
+  access. This lets a stale schedule open without losing its `file` values.
+- `validate_sound_files()` checks the directory and referenced files immediately
+  before Start. The GUI also checks the selected row immediately before editing.
+- Missing/relative directories produce a dismissible error notice while the
+  table remains editable. The sound delegate preserves a missing filename in
+  its dropdown so the teacher can repair either the path or filename.
+- Saving emits `sound_dir = ""` for the default, otherwise an absolute path.
+
+Inheritance rule remains: `rabu`/`kamis`/`sabtu` copy `selasa` when absent.
+Explicitly empty days (for example `rabu = []`) override inheritance. The GUI
+tracks explicitly defined days so saving does not expand inherited days.
 
 ### `app/audio.py`  **[CHANGES — rewritten in Phase 2]**
-Today it provides `AudioBackend` (Protocol), `PygameBackend`, `NullBackend`.
-After Phase 2 it provides `AudioBackend`, **`QtMultimediaBackend`**, `NullBackend`
-(`PygameBackend` deleted). The Protocol is preserved:
+It now provides `AudioBackend` (Protocol), **`QtMultimediaBackend`**, and
+`NullBackend`. `PygameBackend` and the pygame dependency are deleted. The
+Protocol is preserved:
 ```python
 class AudioBackend(Protocol):                 # runtime_checkable
     def play(self, path: Path) -> bool
@@ -113,16 +147,16 @@ class AudioBackend(Protocol):                 # runtime_checkable
 ### `app/scheduler.py`  **[CHANGES — small additions in Phase 2]**
 ```python
 class BellScheduler:
-    def __init__(self, timetable, backend, *,                       # +on_fire/on_error (§4.3)
-                 on_fire=None, on_error=None) -> None
+    def __init__(self, timetable, backend, *,
+                 on_fire=None, on_error=None, sound_dir=None) -> None
     def arm(self) -> int                      # returns #bells armed; safe per-bell
     def tick(self) -> None                    # NEW: one scheduler step, for QTimer-driven use (§4.2)
     def run(self, interval: float = 1.0)      # BLOCKING loop — retained ONLY for headless NullBackend tests
     def stop(self)                            # signals a blocking run() to exit
     def next_bell_today(self) -> tuple[str, Bell] | None
 ```
-`_fire(day, bell)` is the job callback; currently only logs. §4.3 adds the
-`on_fire`/`on_error` hooks. Qt apps use `arm()` + a `QTimer` calling `tick()`
+`_fire(day, bell)` resolves `bell.file` below the scheduler's optional
+`sound_dir`, then invokes the backend and guarded callbacks. Qt apps use `arm()` + a `QTimer` calling `tick()`
 (§4.2); the blocking `run()` is kept only so Qt-free unit tests / `--dry-run`
 still work with `NullBackend`.
 
@@ -141,10 +175,25 @@ def logs_dir() -> Path
 
 ## 2. Goals & non-goals
 
+### Current delivery status
+| Area | Status |
+|---|---|
+| Engine hardening / layer separation | ✅ Complete |
+| Qt Multimedia migration + CLI Qt loop | ✅ Complete |
+| GUI view/edit/save/start/stop | ✅ Complete |
+| Live status, countdown, last-fired highlight | ✅ Complete |
+| Sound preview, shared volume, startup self-test | ✅ Complete |
+| Schedule-specific absolute `sound_dir` | ✅ Complete |
+| SVG app/tray icons and minimize-to-tray | ✅ Complete |
+| Unsaved-change/stop confirmations; dismissible notices | ✅ Complete |
+| Multi-config switcher / exam selector | ⏭ Optional, not implemented |
+| PyInstaller build automation and clean-machine matrix | ⏳ Next required work |
+
 ### MVP goals (must ship)
 1. **Open & view** a schedule (`configs/*.toml`) as an editable table.
 2. **Edit** bells: add / edit / delete. Pick time (time widget) and **sound from a
-   dropdown of `assets/*.mp3`** (no typing filenames — this is the whole point).
+   dropdown of the configured sound folder's `*.mp3` files** (default:
+   `assets/`; no typing filenames — this is the whole point).
 3. **Save** the edited schedule back to TOML (round-trip).
 4. **Start / Stop** the bell engine from the GUI; show clear Running/Stopped state.
 5. **Live status**: "next bell today" + countdown, "last fired" indicator.
@@ -162,11 +211,11 @@ def logs_dir() -> Path
   the documented escape hatch if a deployment target truly can't decode mp3.)
 
 ### Stretch goals (nice-to-have, time permitting)
-- "Add sound" button: copy a new mp3 into `assets/` via file dialog.
-- Multi-config switcher ("Active schedule" dropdown → exam mode = just loading
+- ⏳ "Add sound" button: copy a new mp3 into the configured sound directory.
+- ⏳ Multi-config switcher ("Jadwal aktif" dropdown → exam mode by loading
   `konfig_ujian.toml`).
-- System-tray icon with start/stop.
-- Log tail viewer.
+- ✅ System-tray icon with start/stop/restore/quit; minimize and close hide to tray.
+- ⏳ Log tail viewer.
 
 ---
 
@@ -221,30 +270,30 @@ playback, more capable (seek/position/duration/metadata, ready for future video
 or streaming), and it already matches the chosen UI toolkit. The maintainer
 accepts the codec caveat below for the single-school, uniform-PC deployment.
 
-**The codec caveat (be honest about it).** Qt Multimedia does not bundle its own
-decoders — it delegates to a **platform media framework**:
+**The codec/backend caveat (be honest about it).** Qt Multimedia backend choice
+varies with Qt version, platform, and packaging. The current Linux development
+environment (PySide6 6.11) reports Qt's **FFmpeg** multimedia backend. Other Qt
+builds can use native Windows/macOS frameworks or GStreamer on Linux. Therefore,
+do not encode a deployment assumption such as “all Linux hosts have GStreamer”
+or “PyInstaller always includes every decoder.” The executable must prove audio
+on the actual target image.
 
-| Platform | Backend | mp3 out of the box? |
+| Target | Expected backend | Required decision |
 |---|---|---|
-| Windows | Windows Media Foundation | ✅ always (WMF ships with Windows) |
-| macOS | AVFoundation | ✅ always |
-| **Linux** | **GStreamer** | ⚠️ only if the host has GStreamer **+ `plugins-ugly`/`libav`** (where mp3 decoding lives) |
+| Windows | Qt FFmpeg and/or Windows native media backend | Verify the frozen build on a clean Windows PC. |
+| Linux | Qt FFmpeg in the current dev build; GStreamer is possible in other builds | Verify backend plugins and MP3 playback on the school image. |
+| macOS | Not a Phase 2 target | No release validation currently required. |
 
-Official Qt docs list the GStreamer plugin packs as "required if the Qt
-Multimedia module is used." And **PyInstaller cannot bundle GStreamer** — a frozen
-Linux exe links against the *target machine's* installed GStreamer.
-
-**Why the risk is acceptable here:** the school runs a **uniform PC image**, so
-codec availability is *binary*, not probabilistic — you test once on their actual
-PC and you know forever. pygame's zero-host-deps advantage mainly matters for
-*wide* distribution to unknown machines, which is not this case.
+**Why the residual risk is acceptable:** the school runs a uniform PC image, so
+codec availability can be validated once per deployed image. The mandatory
+self-test remains the source of truth regardless of which backend Qt selects.
 
 **Mandatory mitigation — startup audio self-test (fail LOUDLY).** The dangerous
 property of `QMediaPlayer` on a missing-codec machine is that it does **not**
 crash — it emits `errorOccurred` and plays *nothing*. So on startup (and after
 packaging) the app **must** attempt to play a short clip and, on failure, surface
-a big red banner / non-zero exit: *"Audio tidak dapat memutar mp3 — periksa
-GStreamer / plugin codec."* This converts a silent Monday-morning catastrophe
+a big red, dismissible banner/dialog or non-zero CLI exit: *"Audio tidak dapat
+memutar mp3 — periksa perangkat audio dan plugin codec."* This converts a silent Monday-morning catastrophe
 into a visible, fixable error. Sketch in §7.4. Test once on each target OS image.
 
 > **Documented escape hatch (NOT a Phase 2 deliverable):** if a specific
@@ -276,11 +325,14 @@ app/
     controller.py          # BellController(QObject): owns scheduler, QTimer, status signals
     main_window.py         # QMainWindow: layout, menus, status bar
     schedule_table.py      # QAbstractTableModel over one day's bells + editor delegates
-    sound_picker.py        # combo of assets/*.mp3 (+ optional "add sound")
+    sound_picker.py        # combo + preview button + volume slider
+    settings.py            # sound-folder dialog + MP3 discovery helpers
     audio_selftest.py      # startup mp3 self-test (§3.2) — LOUD on failure
-    toml_io.py             # save_timetable() using tomli_w (mirrors app.config.load)
-    style.qss              # (optional) Qt stylesheet
-  ...models/config/paths/cli unchanged in shape...
+    toml_io.py             # TOML write + explicit-day preservation helpers
+  ...models/config/paths/cli...
+assets/
+  app_icon.svg             # application/window icon
+  tray_icon.svg            # system-tray icon
 run_gui.py                 # top-level launcher for PyInstaller (mirrors run.py)
 ```
 Add a console script:
@@ -321,7 +373,9 @@ blocked; Qt Multimedia is non-blocking, so the worker thread is no longer needed
 
 **Why the old `run()`/`start_in_thread()` is retained:** only so Qt-free unit
 tests and `bel start --dry-run` (`NullBackend`) keep working without a Qt event
-loop. Qt apps ignore `run()` and use `arm()` + `tick()` + the event loop.
+loop. Qt apps ignore it and use `arm()` + `tick()` + the event loop. The GUI also
+retains one shared Qt audio backend across preview and scheduler use; Stop halts
+playback/jobs but does not recreate the multimedia stack unnecessarily.
 
 ### 4.3 Small engine additions (Step 0)
 The controller wants to know *which bell fired* and *when a job errors*, and Qt
@@ -449,8 +503,9 @@ Each step ends with **Done when:** acceptance criteria.
   and updates when a bell fires.
 
 ### Step 6 — Sound picker, test, volume
-- `app/gui/sound_picker.py`: combo from `sorted(assets_dir().glob("*.mp3"))`,
-  with a ▶ "Putar" button (uses the shared `QtMultimediaBackend`).
+- `app/gui/sound_picker.py`: combo from the persistent configured sound folder
+  (default `assets/`), with a ▶ "Putar" button using the shared
+  `QtMultimediaBackend`.
 - Volume `QSlider` (0.0–1.0) → `backend.set_volume()` (on `QAudioOutput`).
 - (Stretch) "Tambah suara…" → file dialog → copy mp3 into `assets/`, refresh.
 - **Done when:** any sound can be previewed without starting the scheduler;
@@ -471,10 +526,11 @@ Each step ends with **Done when:** acceptance criteria.
   and Start/Stop works.
 
 ### Step 9 — Polish
-- App icon, window title `Bel Pembelajaran`, sensible min size.
-- Confirmation on Stop while running; unsaved-changes guard on close.
+- App/tray SVG icons, window title `Bel Pembelajaran`, sensible min size.
+- Confirmation on Stop while running; unsaved-changes guard on new/open/quit.
 - Error toasts for backend-init failure (fall back to `NullBackend` + warn, as CLI does).
-- (Optional) system tray.
+- System tray: minimize/close hides the window while the scheduler keeps running;
+  use **Aplikasi → Keluar Sepenuhnya** (or the tray menu) to terminate.
 
 ---
 
@@ -484,6 +540,13 @@ Each step ends with **Done when:** acceptance criteria.
 > version before trusting these sketches (Qt Multimedia API moved around 6.2).
 
 ### 7.1 `app/gui/controller.py` (single-thread QTimer model)
+> **Superseded by implementation.** This sketch predates the shipped code and
+> is kept only to explain the model. The real controller additionally:
+> keeps **one shared backend** across preview and scheduler (`_ensure_backend()`,
+> created lazily, not per-Start), exposes `use_timetable()`, `set_sound_dir()`,
+> `preview_sound()`, `shutdown()`, tracks `last_error`, and runs
+> `validate_sound_files()` before arming (Start is refused with the error list
+> when sounds are missing). Trust `app/gui/controller.py` over this sketch.
 ```python
 from __future__ import annotations
 from pathlib import Path
@@ -805,8 +868,9 @@ subprocess.check_call(cmd)
 1. **Confirm the school's Linux image has GStreamer mp3 codecs** — run the startup
    self-test once on an actual school PC. (This single check resolves the whole
    codec-risk question for the uniform fleet.)
-2. Save edited schedules into `configs/` (repo) or `user_data_dir()` (per-user)?
-   Recommendation: default Save-As into `user_data_dir()/schedules/`, keep
-   `configs/` as read-only shipped examples.
+2. ~~Save edited schedules into `configs/` (repo) or `user_data_dir()` (per-user)?~~
+   **Decided & implemented:** "Simpan Sebagai…" defaults to
+   `user_data_dir()/schedules/`; "Open…" starts in `configs/`; shipped `configs/`
+   stay read-only examples.
 3. Is losing TOML comments on Save acceptable? (Assumed yes.)
 4. Should the GUI be able to install itself to autostart? (Defer.)

@@ -1,3 +1,6 @@
+# Path absolut folder MP3; kosong memakai assets bawaan.
+sound_dir = ""
+
 # Senin
 # jam 1
 [[senin]]

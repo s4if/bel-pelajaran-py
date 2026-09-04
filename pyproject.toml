@@ -19,8 +19,9 @@ qt = ["PySide6>=6.7,<7", "tomli_w>=1,<2"]
 gui = ["PySide6>=6.7,<7", "tomli_w>=1,<2"]
 
 [project.scripts]
-# Installs a `bel` console script after `uv sync` / `pip install .`
+# Installs console scripts after `uv sync` / `pip install .`
 bel = "app.cli:main"
+bel-gui = "app.gui.__main__:main"
 
 [dependency-groups]
 dev = [

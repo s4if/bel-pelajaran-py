@@ -75,6 +75,18 @@ def test_tick_runs_pending_jobs(monkeypatch):
     assert calls == [True]
 
 
+def test_fire_uses_configured_sound_directory(tmp_path):
+    sound_dir = tmp_path / "sounds"
+    sound_dir.mkdir()
+    backend = RecordingBackend()
+    bell = Bell("07:00", "custom.mp3")
+    scheduler = BellScheduler(Timetable(), backend, sound_dir=sound_dir)
+
+    scheduler._fire("senin", bell)
+
+    assert backend.played == [sound_dir / "custom.mp3"]
+
+
 def teardown_function():
     # The schedule package stores jobs globally; do not leak jobs between tests.
     schedule.clear()

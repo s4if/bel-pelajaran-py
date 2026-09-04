@@ -18,7 +18,12 @@ from pathlib import Path
 
 from . import __version__
 from .audio import NullBackend
-from .config import load_timetable, validate_timetable
+from .config import (
+    load_timetable,
+    resolve_sound_dir,
+    validate_sound_files,
+    validate_timetable,
+)
 from .logging_setup import setup_logging
 from .models import DAY_LABEL, Timetable
 from .paths import asset, assets_dir
@@ -95,9 +100,17 @@ def cmd_start(args: argparse.Namespace) -> int:
         )
         return 2
 
-    samples = sorted(assets_dir().glob("*.mp3"))
+    sound_result = validate_sound_files(timetable)
+    if not sound_result.ok:
+        print("Audio jadwal belum siap:", file=sys.stderr)
+        for item in sound_result.errors:
+            print(f"   - [{item.day}] {item.message}", file=sys.stderr)
+        return 3
+
+    sound_dir = resolve_sound_dir(timetable)
+    samples = sorted(sound_dir.glob("*.mp3"))
     if not samples:
-        print("Audio gagal: tidak ada file mp3 untuk self-test di assets/.", file=sys.stderr)
+        print(f"Audio gagal: tidak ada file mp3 di {sound_dir}.", file=sys.stderr)
         return 3
 
     qt_app = QCoreApplication.instance() or QCoreApplication(sys.argv)
@@ -128,6 +141,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         on_error=lambda day, bell, exc: log.error(
             "error bell %s %s: %s", day, bell.jam, exc
         ),
+        sound_dir=sound_dir,
     )
     engine.arm()
     engine.tick()

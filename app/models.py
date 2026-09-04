@@ -41,7 +41,8 @@ class Bell:
     """A single scheduled bell: a wall-clock time and a sound file.
 
     ``jam``  — ``"HH:MM"`` (24-hour), e.g. ``"07:00"``.
-    ``file`` — bare filename inside ``assets/``, e.g. ``"1.mp3"``.
+    ``file`` — bare filename inside the configured sound directory (the GUI
+    defaults to ``assets/``), e.g. ``"1.mp3"``.
     """
 
     jam: str
@@ -50,12 +51,15 @@ class Bell:
 
 @dataclass
 class Timetable:
-    """A full week. Days not present are treated as having no bells.
+    """A full week and its optional schedule-specific sound directory.
 
-    Use :meth:`all_bells` or iterate the timetable to walk the week in order.
+    Days not present are treated as having no bells. An empty ``sound_dir``
+    selects the bundled default assets directory; non-empty values in TOML are
+    absolute paths.
     """
 
     days: dict[str, list[Bell]] = field(default_factory=dict)
+    sound_dir: str = ""
 
     def __iter__(self) -> Iterator[tuple[str, list[Bell]]]:
         """Yield (day, bells) for every school day in canonical order."""

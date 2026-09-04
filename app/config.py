@@ -61,12 +61,14 @@ def parse_timetable(data: dict) -> Timetable:
     """Build a Timetable from a parsed TOML dict (used by tests)."""
     raw: dict[str, list[Bell]] = {}
     for day in DAYS:
-        entries = data.get(day)
-        if not entries:
+        if day not in data:
             continue
+        entries = data[day]
         bells: list[Bell] = []
         for e in entries:
             bells.append(Bell(jam=str(e["jam"]), file=str(e["file"])))
+        # Keep explicitly empty days. This lets ``rabu = []`` override Selasa
+        # inheritance, which is required when the GUI deletes every Rabu bell.
         raw[day] = bells
 
     # apply inheritance: e.g. rabu/kamis/sabtu <- selasa
@@ -74,7 +76,7 @@ def parse_timetable(data: dict) -> Timetable:
         if day not in raw and src in raw:
             raw[day] = list(raw[src])
 
-    return Timetable(days=raw)
+    return Timetable(days=raw, sound_dir=str(data.get("sound_dir", "") or "").strip())
 
 
 def is_valid_time(s: str) -> bool:
@@ -87,12 +89,13 @@ def is_valid_time(s: str) -> bool:
 
 
 def validate_timetable(timetable: Timetable) -> ValidationResult:
-    """Check time format, sound-file existence and duplicate times.
+    """Check schedule values without touching the filesystem.
 
-    Collects ALL errors. Does not raise.
+    Sound locations are deliberately verified only immediately before starting
+    playback or editing a row, so a schedule with a stale path can still open
+    and retain every configured filename.
     """
     result = ValidationResult()
-    assets = assets_dir()
     for day, bells in timetable:
         seen: dict[str, int] = {}
         for bell in bells:
@@ -106,15 +109,6 @@ def validate_timetable(timetable: Timetable) -> ValidationResult:
                     )
                 )
                 continue
-            if not (assets / bell.file).is_file():
-                result.errors.append(
-                    ValidationError(
-                        day=day,
-                        jam=bell.jam,
-                        file=bell.file,
-                        message=f"File suara tidak ditemukan: {bell.file!r}",
-                    )
-                )
             seen[bell.jam] = seen.get(bell.jam, 0) + 1
 
         for t, count in seen.items():
@@ -124,6 +118,54 @@ def validate_timetable(timetable: Timetable) -> ValidationResult:
                         day=day,
                         jam=t,
                         message=f"Jam {t!r} muncul {count}× di hari {day} (duplikat)",
+                    )
+                )
+    return result
+
+
+def resolve_sound_dir(timetable: Timetable) -> Path:
+    """Resolve the configured absolute sound path or the bundled default."""
+    configured = timetable.sound_dir.strip()
+    if not configured:
+        return assets_dir().resolve()
+    return Path(configured).expanduser().resolve()
+
+
+def validate_sound_files(timetable: Timetable) -> ValidationResult:
+    """Verify the configured sound directory and every referenced audio file."""
+    result = ValidationResult()
+    configured = timetable.sound_dir.strip()
+    if configured and not Path(configured).expanduser().is_absolute():
+        result.errors.append(
+            ValidationError(
+                day="umum",
+                message="Folder suara harus menggunakan path absolut.",
+            )
+        )
+        return result
+
+    sound_dir = resolve_sound_dir(timetable)
+    if not sound_dir.is_dir():
+        result.errors.append(
+            ValidationError(
+                day="umum",
+                message=f"Folder suara tidak ditemukan: {sound_dir}",
+            )
+        )
+        return result
+
+    for day, bells in timetable:
+        for bell in bells:
+            if not (sound_dir / bell.file).is_file():
+                result.errors.append(
+                    ValidationError(
+                        day=day,
+                        jam=bell.jam,
+                        file=bell.file,
+                        message=(
+                            f"File suara tidak ditemukan: {bell.file!r} "
+                            f"di {sound_dir}"
+                        ),
                     )
                 )
     return result

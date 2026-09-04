@@ -1,8 +1,11 @@
 # Contoh konfigurasi Bel Pelajaran.
 #
+# Folder suara harus berupa path absolut. Kosong = folder assets bawaan.
+sound_dir = ""
+#
 # Format: array of tables per hari (senin..sabtu). Setiap entri punya:
 #   jam  = "HH:MM"        (24 jam)
-#   file = nama file di folder assets/
+#   file = nama file di folder suara
 #
 # Hari yang tidak ditulis akan kosong, KECUALI rabu/kamis/sabtu yang akan
 # meniru jadwal "selasa" bila tidak didefinisikan (lihat konfig.toml).

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Bel Pembelajaran">
+  <defs>
+    <linearGradient id="bg" x1="32" y1="24" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <linearGradient id="bell" x1="92" y1="62" x2="164" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#bg)"/>
+  <path d="M68 84c-16 16-24 34-24 54s8 38 24 54" fill="none" stroke="#bfdbfe" stroke-width="12" stroke-linecap="round"/>
+  <path d="M188 84c16 16 24 34 24 54s-8 38-24 54" fill="none" stroke="#bfdbfe" stroke-width="12" stroke-linecap="round"/>
+  <path d="M128 48a16 16 0 0 1 16 16v5c25 7 40 29 40 59v30l15 22c4 7-1 16-9 16H66c-8 0-13-9-9-16l15-22v-30c0-30 15-52 40-59v-5a16 16 0 0 1 16-16Z" fill="url(#bell)" stroke="#fff7d6" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M103 202h50c-3 18-13 28-25 28s-22-10-25-28Z" fill="#fbbf24"/>
+  <circle cx="128" cy="128" r="13" fill="#1e3a8a"/>
+  <path d="M128 141v25" stroke="#1e3a8a" stroke-width="10" stroke-linecap="round"/>
+</svg>
