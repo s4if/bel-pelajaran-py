@@ -7,13 +7,16 @@ license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.14"
 authors = [{ name = "s4if" }]
 dependencies = [
-    # Audio backend: SDL_mixer bundles mp3 (libmpg123), ogg, flac, wav decoders.
-    # No external ffmpeg needed. Non-blocking playback. Wheels for cp311-cp313.
-    "pygame>=2.6,<3",
     # Lightweight, familiar scheduler. (See ROADMAP for a future APScheduler swap.)
     "schedule>=1.2,<2",
     # NOTE: tomllib is stdlib since Python 3.11 — no third-party TOML lib needed.
 ]
+
+[project.optional-dependencies]
+# Qt is optional so validation and --dry-run remain usable without a GUI/audio
+# stack. Qt Multimedia is imported lazily by app.audio.
+qt = ["PySide6>=6.7,<7", "tomli_w>=1,<2"]
+gui = ["PySide6>=6.7,<7", "tomli_w>=1,<2"]
 
 [project.scripts]
 # Installs a `bel` console script after `uv sync` / `pip install .`
@@ -23,6 +26,8 @@ bel = "app.cli:main"
 dev = [
     "pytest>=8",
     "pyinstaller>=6",   # for `bel package` / building the exe (see README)
+    "PySide6>=6.7,<7",
+    "tomli_w>=1,<2",
 ]
 
 [build-system]

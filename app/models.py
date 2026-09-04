@@ -1,7 +1,7 @@
 """Typed data models for the bell schedule.
 
 Kept dependency-free so they can be imported by tests, the config loader, the
-scheduler, and (later) a GUI without pulling in pygame.
+scheduler, and (later) a GUI without pulling in Qt Multimedia.
 """
 
 from __future__ import annotations

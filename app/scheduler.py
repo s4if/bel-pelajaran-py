@@ -3,12 +3,12 @@
 Decoupled from the config source and the audio backend:
 
     timetable = config.load_timetable("configs/konfig.toml")
-    backend   = audio.PygameBackend()
+    backend   = audio.QtMultimediaBackend()
     engine    = scheduler.BellScheduler(timetable, backend)
     engine.arm()
-    engine.run()                 # blocking loop, for the CLI
+    engine.run()                 # blocking loop, for the headless CLI
     # or, from a GUI:
-    engine.start_in_thread()     # daemon thread + callbacks
+    engine.arm(); engine.tick()  # call tick() from the GUI event loop
 
 Robustness (Phase 0 hardening):
 
@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
 from datetime import datetime
 from typing import Callable
 
@@ -39,9 +38,18 @@ log = logging.getLogger(__name__)
 
 
 class BellScheduler:
-    def __init__(self, timetable: Timetable, backend: AudioBackend) -> None:
+    def __init__(
+        self,
+        timetable: Timetable,
+        backend: AudioBackend,
+        *,
+        on_fire: Callable[[str, Bell], None] | None = None,
+        on_error: Callable[[str, Bell, BaseException], None] | None = None,
+    ) -> None:
         self.timetable = timetable
         self.backend = backend
+        self._on_fire = on_fire
+        self._on_error = on_error
         self._stop = threading.Event()
 
     # ------------------------------------------------------------------ arm
@@ -77,8 +85,31 @@ class BellScheduler:
             log.info(">>> BELL  [%s %s]  %s", day, bell.jam, bell.file)
             if not self.backend.play(path):
                 log.error("bell tidak terputar: %s %s (%s)", day, bell.jam, bell.file)
+            if self._on_fire is not None:
+                try:
+                    self._on_fire(day, bell)
+                except Exception:
+                    log.exception("on_fire callback error")
         except Exception as exc:  # pragma: no cover - defensive
             log.exception("error tak terduga saat membunyikan bell: %s", exc)
+            if self._on_error is not None:
+                try:
+                    self._on_error(day, bell, exc)
+                except Exception:
+                    log.exception("on_error callback error")
+
+    # ------------------------------------------------------------------ tick
+    def tick(self) -> None:
+        """Advance the scheduler one step.
+
+        GUI/event-loop integrations should call this periodically (normally
+        once per second) instead of using :meth:`run` or
+        :meth:`start_in_thread`.
+        """
+        try:
+            sched_lib.run_pending()
+        except Exception:
+            log.exception("error pada run_pending (dilanjutkan)")
 
     # ------------------------------------------------------------------ run
     def run(self, interval: float = 1.0) -> None:
@@ -90,10 +121,7 @@ class BellScheduler:
         self._stop.clear()
         try:
             while not self._stop.is_set():
-                try:
-                    sched_lib.run_pending()
-                except Exception:
-                    log.exception("error pada run_pending (dilanjutkan)")
+                self.tick()
                 self._stop.wait(interval)
         except KeyboardInterrupt:
             log.info("dihentikan oleh pengguna")

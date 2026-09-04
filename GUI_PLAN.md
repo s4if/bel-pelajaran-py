@@ -7,8 +7,10 @@
 > and implement it end-to-end.
 >
 > **Status of the project today.** Phase 0 (engine hardening) and Phase 1 (layer
-> decoupling) are **done and tested**. Audio currently uses pygame; **Phase 2
-> removes pygame and switches to Qt Multimedia everywhere** (GUI *and* CLI).
+> decoupling) are **done and tested**. Phase 2 **Step 0 is implemented**: pygame
+> has been removed, Qt Multimedia is the audio backend, scheduler callbacks/tick
+> are available, the startup audio self-test helper exists, and the CLI now runs
+> through a Qt event loop. The GUI remains for the next steps.
 
 ---
 
@@ -30,7 +32,7 @@ cat README.md                             # overall structure + commands
 sed -n '1,140p' app/scheduler.py          # the engine you will drive
 sed -n '1,110p' app/config.py             # load + validate schedule
 sed -n '1,100p' app/models.py             # Bell / Timetable dataclasses
-sed -n '1,110p' app/audio.py              # AudioBackend + PygameBackend  (will be REWRITTEN in Phase 2)
+sed -n '1,110p' app/audio.py              # AudioBackend + QtMultimediaBackend
 sed -n '1,90p'  app/paths.py              # resource resolution (dev + frozen exe)
 uv run pytest                             # must be green before you start
 uv run bel check configs/konfig.toml      # smoke: validates the real schedule
