@@ -5,10 +5,13 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QMessageBox
 
 from app.audio import QtMultimediaBackend
 from app.logging_setup import setup_logging
+
 from .audio_selftest import self_test_audio
+from .first_run import ensure_user_default_schedule
 from .main_window import MainWindow
 from .qt_app import get_qapp
 from .settings import find_sound_files
@@ -31,7 +34,17 @@ def main() -> int:
     setup_logging()
     app = get_qapp()
     app.setApplicationName("Bel Pembelajaran")
-    window = MainWindow()
+    try:
+        initial_schedule = ensure_user_default_schedule()
+    except OSError as exc:
+        QMessageBox.critical(
+            None,
+            "Gagal Menyiapkan Jadwal",
+            "Jadwal bawaan tidak dapat disalin ke folder konfigurasi pengguna.\n"
+            f"Detail: {exc}",
+        )
+        return 2
+    window = MainWindow(initial_schedule=initial_schedule)
     app.aboutToQuit.connect(window.controller.shutdown)
     window.show()
     QTimer.singleShot(0, lambda: _run_startup_audio_test(window))

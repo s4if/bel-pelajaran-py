@@ -14,9 +14,10 @@
 > its sound-directory setting (`sound_dir`): an empty value uses bundled
 > `assets/`; a non-empty value must be absolute. Missing paths/files no longer
 > destroy or reject loaded `file` values; filesystem checks happen immediately
-> before Start and before editing a row. The suite currently has **53 passing
-> tests**. Step 7 remains optional; **Step 8 (packaging and clean-machine
-> validation) is the next required step**.
+> before Start and before editing a row. The suite currently has **56 passing
+> tests**. User-writable schedules now use platform-standard configuration
+> directories (XDG on Linux, APPDATA on Windows). Step 7 remains optional;
+> **Step 8 (packaging and clean-machine validation) is the next required step**.
 
 ---
 
@@ -522,11 +523,20 @@ Each step ends with **Done when:** acceptance criteria.
 ### Step 8 — Packaging (PyInstaller + PySide6 + Qt Multimedia)
 - `scripts/build_exe.py` (cross-platform) or documented commands (§8).
 - Produce a **folder** dist (`--onedir`, recommended) and optionally `--onefile`.
+- Bundle factory `configs/` and default `assets/` as read-only application
+  resources. Debian packages should install them below `/usr/share`, AppImages
+  should keep them inside the image, and Windows installers should keep them
+  beside/in the executable bundle.
+- On first launch, copy the bundled default TOML to the user configuration
+  directory (`schedules_dir()`), then load that user copy. Never save changes
+  to the bundled copy under `/usr/share`, an AppImage, or `Program Files`.
+  If the user config already exists, load it unchanged.
 - **Test the produced binary on a clean Windows machine and on the target Linux
-  image** — and confirm the startup self-test passes there.
+  image** — verify the first-run copy, restart persistence, no writes to the
+  installation directory, and that the startup self-test passes there.
 - **Done when:** double-clicking the exe (no Python/Qt installed) opens the GUI,
-  loads bundled `configs/`+`assets/`, passes the audio self-test, plays sound,
-  and Start/Stop works.
+  creates/loads the user default config, finds bundled `configs/`+`assets/`,
+  passes the audio self-test, plays sound, and Start/Stop works.
 
 ### Step 9 — Polish
 - App/tray SVG icons, window title `Bel Pembelajaran`, sensible min size.
@@ -875,5 +885,11 @@ subprocess.check_call(cmd)
    **Decided & implemented:** "Simpan Sebagai…" defaults to
    `schedules_dir()`; "Open…" starts in `configs/`; shipped `configs/`
    stay read-only examples.
-3. Is losing TOML comments on Save acceptable? (Assumed yes.)
-4. Should the GUI be able to install itself to autostart? (Defer.)
+3. ~~Where should the default config and bundled assets live after packaging?~~
+   **Decided for Step 8:** factory TOML/assets remain read-only package resources.
+   On first GUI launch, the bundled default TOML is copied to `schedules_dir()`
+   and loaded from there; subsequent saves never target the installation
+   directory. Default assets remain bundled and `sound_dir = ""` resolves to
+   those assets.
+4. Is losing TOML comments on Save acceptable? (Assumed yes.)
+5. Should the GUI be able to install itself to autostart? (Defer.)

@@ -93,6 +93,20 @@ def test_svg_application_and_tray_icons_load():
     _close_without_prompt(window)
 
 
+def test_save_of_factory_schedule_is_redirected_to_save_as(monkeypatch):
+    _app, window = _window()
+    redirected = []
+    monkeypatch.setattr(
+        window,
+        "_save_schedule_as",
+        lambda: redirected.append(True) or True,
+    )
+
+    assert window._save_schedule()
+    assert redirected == [True]
+    _close_without_prompt(window)
+
+
 def test_error_notice_can_be_dismissed():
     _app, window = _window()
 

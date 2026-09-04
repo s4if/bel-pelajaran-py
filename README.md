@@ -10,7 +10,7 @@ dikembangkan menjadi aplikasi GUI lintas-platform (Windows + Linux).
 
 ## Status
 
-Fase **0 (pengerasan mesin)** dan **1 (pemisahan layer)** selesai. Implementasi **Fase 2 / Step 0–6** sudah selesai: backend Qt Multimedia, event loop CLI, editor jadwal, status live, pratinjau suara, dan kontrol volume sudah tersedia. Mesin sudah:
+Fase **0 (pengerasan mesin)** dan **1 (pemisahan layer)** selesai. Implementasi **Fase 2 / Step 0–6 dan otomasi packaging Step 8** sudah tersedia: backend Qt Multimedia, event loop CLI, editor jadwal, status live, pratinjau suara, kontrol volume, serta builder EXE/DEB/AppImage. Validasi artefak pada mesin bersih tetap wajib dilakukan sebelum rilis. Mesin sudah:
 
 - memutar suara secara **non-blocking** (suara panjang tidak akan menunda/men-skip bel berikutnya),
 - **tahan error** — satu file rusak/hilang tidak akan menghentikan jadwal seharian,
@@ -40,7 +40,10 @@ bel-pelajaran-py/
 ├── configs/             # file jadwal .toml
 ├── assets/              # file suara .mp3
 ├── tests/               # pytest
-├── run.py               # launcher tipis (juga entrypoint PyInstaller)
+├── scripts/             # builder EXE, DEB, dan AppImage
+├── packaging/linux/     # desktop entry untuk paket Linux
+├── run.py               # launcher tipis CLI lama
+├── run_gui.py           # entrypoint GUI untuk PyInstaller
 ├── pyproject.toml       # konfigurasi proyek (uv) — sumber kebenaran
 ├── uv.lock              # lockfile uv
 └── requirements.txt     # runtime-only (di-generate dari pyproject)
@@ -136,26 +139,82 @@ Lihat `configs/example.toml` dan `configs/konfig.toml`.
 
 ---
 
-## Membangun jadi EXE (PyInstaller)
+## Membuat paket rilis
 
-Groundwork-nya sudah ada: `app/paths.py` mendeteksi `sys._MEIPASS` saat dibekukan,
-jadi folder `assets/` & `configs/` otomatis ditemukan baik dari source maupun dari exe.
+Build diotomatisasi oleh `scripts/build_packages.py`. PyInstaller **bukan**
+cross-compiler: EXE harus dibuat pada Windows native, sedangkan `.deb` dan
+AppImage harus dibuat pada Linux. Semua perintah dijalankan dari root proyek.
 
-```bash
-uv run pyinstaller \
-  --name bel \
-  --noconfirm \
-  --add-data "assets:assets" \
-  --add-data "configs:configs" \
-  --hidden-import PySide6.QtMultimedia \
-  run.py
+### Windows — EXE (folder/onedir)
+
+Prerequisite: Python 3.12 + uv. Jalankan lewat cmd atau PowerShell, bukan WSL:
+
+```powershell
+uv sync --all-extras --group dev
+uv run python scripts/build_packages.py windows
 ```
 
-- `--add-data "src:dest"` — `src` di mesin ini, `dest` di dalam bundle.
-  Pemisah `:` di Linux/macOS, gunakan `;` di Windows (`"assets;assets"`).
-- Hasil: `dist/bel/` (folder, direkomendasikan) atau tambahkan `--onefile` untuk satu file.
+Hasil utama:
+`dist/windows/bel-pelajaran/bel-pelajaran.exe`. Seluruh folder
+`bel-pelajaran/` adalah satu aplikasi dan harus didistribusikan bersama; EXE
+bergantung pada file internal di sebelahnya. Python dan Qt tidak perlu dipasang
+di komputer tujuan.
 
-> Di Windows, jalankan dari **cmd/PowerShell** (bukan WSL) supaya exe-nya native Windows.
+### Linux — Debian `.deb`
+
+Prerequisite build pada Debian/Ubuntu:
+
+```bash
+sudo apt install dpkg-dev
+uv sync --all-extras --group dev
+uv run python scripts/build_packages.py deb
+```
+
+Hasil: `dist/linux/bel-pelajaran_<versi>_<arsitektur>.deb`.
+
+### Linux — AppImage
+
+Unduh `appimagetool` resmi dari rilis AppImageKit, jadikan executable, lalu:
+
+```bash
+chmod +x ~/Downloads/appimagetool-x86_64.AppImage
+uv sync --all-extras --group dev
+uv run python scripts/build_packages.py appimage \
+  --appimagetool ~/Downloads/appimagetool-x86_64.AppImage
+```
+
+Hasil: `dist/linux/Bel-Pembelajaran-<versi>-<arsitektur>.AppImage`.
+Untuk membuat kedua format Linux dari satu build PyInstaller:
+
+```bash
+uv run python scripts/build_packages.py linux --appimagetool /path/appimagetool
+```
+
+Paket Linux menaruh program di `/usr/lib/bel-pelajaran` dan resource factory
+di `/usr/share/bel-pelajaran`. AppImage menggunakan susunan yang sama di dalam
+image. Launcher mengatur `BEL_PELAJARAN_RESOURCE_DIR`; Windows menyimpan resource
+di bundle PyInstaller.
+
+Saat GUI pertama kali dibuka, `configs/konfig.toml` bawaan disalin menjadi
+jadwal pengguna (`~/.config/bel-pelajaran/schedules/konfig.toml` atau
+`%APPDATA%\\bel-pelajaran\\schedules\\konfig.toml`). File yang sudah ada tidak
+pernah ditimpa. Resource instalasi dianggap read-only dan tombol **Simpan** akan
+mengarahkan jadwal factory ke **Simpan Sebagai…**.
+
+> Bangun AppImage pada distribusi Linux tertua yang akan didukung karena glibc
+> dari host build menentukan kompatibilitas. Qt Multimedia/plugin FFmpeg tetap
+> wajib diuji pada image sekolah yang sebenarnya.
+
+### Validasi clean-machine wajib
+
+Untuk setiap artefak, gunakan VM/PC tanpa Python dan Qt terpasang, lalu periksa:
+
+1. aplikasi terbuka dari menu/double-click;
+2. jadwal default tersalin pada first run;
+3. edit + Simpan bertahan setelah restart dan tidak mengubah direktori instalasi;
+4. self-test audio tidak menampilkan error dan MP3 terdengar;
+5. Mulai/Berhenti serta system tray bekerja;
+6. `.deb` dapat dihapus dengan package manager dan AppImage tetap portabel.
 
 ---
 
@@ -163,7 +222,7 @@ uv run pyinstaller \
 
 - [x] **Fase 0** — pengerasan: audio non-blocking, error handling, logging, path portabel, validasi menyeluruh, tes.
 - [x] **Fase 1** — pemisahan layer (config / engine / audio) agar bisa dipakai GUI.
-- [ ] **Fase 2** — GUI lintas-platform (PySide6). Step 0–6 selesai: editor lengkap, Start/Stop, status live, countdown, pratinjau suara, volume, startup audio self-test, folder suara yang dapat dikonfigurasi, SVG app/tray icon, minimize-to-tray, serta guard perubahan/stop. Berikutnya: packaging; multi-config tetap stretch goal.
+- [ ] **Fase 2** — GUI lintas-platform (PySide6). Step 0–6 selesai; otomasi Step 8 menghasilkan EXE Windows, `.deb`, dan AppImage Linux serta menyalin jadwal factory pada first run. Yang tersisa sebelum menandai fase selesai adalah validasi clean-machine Windows/Linux; multi-config tetap stretch goal.
 - [ ] Pertimbangkan ganti `schedule` → APScheduler (recover job terlewat, lebih tangguh terhadap perubahan jam).
 - [ ] Mode ujian sebagai toggle runtime (bukan ganti file konfigurasi).
 - [ ] Jadwalkan sebagai service/autostart (bertahan restart & tidur mesin).

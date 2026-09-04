@@ -28,6 +28,23 @@ def test_windows_directories(monkeypatch, tmp_path):
     assert paths.state_dir() == tmp_path / "local" / paths.APP_NAME
 
 
+def test_packaged_resource_directory_from_environment(monkeypatch, tmp_path):
+    resources = tmp_path / "usr" / "share" / paths.APP_NAME
+    monkeypatch.setenv(paths.RESOURCE_DIR_ENV, str(resources))
+
+    assert paths.app_root() == resources
+    assert paths.assets_dir() == resources / "assets"
+    assert paths.configs_dir() == resources / "configs"
+    assert paths.is_bundled_resource(resources / "configs" / "konfig.toml")
+    assert not paths.is_bundled_resource(tmp_path / "user" / "konfig.toml")
+
+
+def test_relative_resource_directory_is_ignored(monkeypatch):
+    monkeypatch.setenv(paths.RESOURCE_DIR_ENV, "relative/resources")
+
+    assert paths.app_root() == Path(paths.__file__).resolve().parent.parent
+
+
 def test_relative_xdg_home_uses_default(monkeypatch, tmp_path):
     monkeypatch.setattr(paths.sys, "platform", "linux")
     monkeypatch.setenv("HOME", str(tmp_path))

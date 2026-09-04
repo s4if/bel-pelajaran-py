@@ -31,8 +31,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.config import validate_timetable
-from app.models import DAYS, DAY_LABEL, Bell, Timetable
-from app.paths import assets_dir, configs_dir, schedules_dir
+from app.models import DAY_LABEL, DAYS, Bell, Timetable
+from app.paths import assets_dir, configs_dir, is_bundled_resource, schedules_dir
 
 from .controller import BellController
 from .schedule_table import BellsModel, SoundDelegate, TimeDelegate
@@ -62,7 +62,7 @@ def format_countdown(time_text: str, now: datetime | None = None) -> str:
 class MainWindow(QMainWindow):
     """Edit a weekly schedule and control the in-process bell engine."""
 
-    def __init__(self) -> None:
+    def __init__(self, initial_schedule: str | Path | None = None) -> None:
         super().__init__()
         self.setWindowTitle("Bel Pembelajaran")
         self.setMinimumSize(720, 560)
@@ -84,7 +84,12 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._connect_controller()
         self._setup_tray()
-        self._load_schedule(configs_dir() / "example.toml", show_dialog=False)
+        startup_path = (
+            Path(initial_schedule)
+            if initial_schedule is not None
+            else configs_dir() / "example.toml"
+        )
+        self._load_schedule(startup_path, show_dialog=False)
 
     def _build_actions(self) -> None:
         self.new_action = QAction("&Jadwal Baru", self)
@@ -628,9 +633,13 @@ class MainWindow(QMainWindow):
         self.delete_button.setEnabled(has_selection)
 
     def _save_schedule(self) -> bool:
-        if self.controller.config_path is None:
+        path = self.controller.config_path
+        if path is None or is_bundled_resource(path):
+            # Factory schedules are examples below /usr/share, inside an
+            # AppImage, or inside the Windows bundle. They are never writable
+            # application state; redirect edits to the per-user schedule area.
             return self._save_schedule_as()
-        return self._write_schedule(self.controller.config_path)
+        return self._write_schedule(path)
 
     def _save_schedule_as(self) -> bool:
         schedule_dir = schedules_dir()

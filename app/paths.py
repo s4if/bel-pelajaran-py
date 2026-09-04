@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "bel-pelajaran"
+RESOURCE_DIR_ENV = "BEL_PELAJARAN_RESOURCE_DIR"
 
 
 def is_frozen() -> bool:
@@ -32,9 +33,15 @@ def is_frozen() -> bool:
 def app_root() -> Path:
     """Directory that contains bundled resources (``assets/``, ``configs/``).
 
-    - Frozen: the temporary ``_MEIPASS`` extraction folder PyInstaller creates.
-    - Source: the project root (parent of this ``app/`` package).
+    Linux package launchers set :data:`RESOURCE_DIR_ENV` so Debian and AppImage
+    resources can live below ``/usr/share``. A frozen Windows build falls back
+    to PyInstaller's ``_MEIPASS`` directory. Source mode uses the project root.
     """
+    configured = os.environ.get(RESOURCE_DIR_ENV, "").strip()
+    if configured:
+        candidate = Path(configured).expanduser()
+        if candidate.is_absolute():
+            return candidate
     if is_frozen():
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
@@ -54,6 +61,15 @@ def configs_dir() -> Path:
 def asset(filename: str) -> Path:
     """Resolve a bare asset filename (e.g. ``"1.mp3"``) to an absolute path."""
     return assets_dir() / filename
+
+
+def is_bundled_resource(path: str | Path) -> bool:
+    """Return whether *path* is inside the read-only application resources."""
+    try:
+        Path(path).expanduser().resolve().relative_to(app_root().resolve())
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return True
 
 
 def _ensure_directory(path: Path) -> Path:
