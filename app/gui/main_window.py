@@ -6,7 +6,7 @@ from datetime import datetime
 from math import ceil
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QItemSelection, QModelIndex, QTime, QTimer
+from PySide6.QtCore import QEvent, QItemSelection, QModelIndex, Qt, QTime, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -176,6 +176,8 @@ class MainWindow(QMainWindow):
         self.schedule_table = QTableView()
         self.schedule_table.setObjectName("scheduleTable")
         self.schedule_table.setModel(self.schedule_model)
+        self.schedule_table.setSortingEnabled(True)
+        self.schedule_table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.schedule_table.setAlternatingRowColors(True)
         self.schedule_table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows

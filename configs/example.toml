@@ -3,7 +3,7 @@
 # Folder suara harus berupa path absolut. Kosong = folder assets bawaan.
 sound_dir = ""
 #
-# Format: array of tables per hari (senin..sabtu). Setiap entri punya:
+# Format: array inline per hari (senin..sabtu). Setiap entri punya:
 #   jam  = "HH:MM"        (24 jam)
 #   file = nama file di folder suara
 #
@@ -11,51 +11,33 @@ sound_dir = ""
 #
 # Periksa dengan:   bel check configs/example.toml
 
-[[senin]]
-jam = "07:00"
-file = "upacara_kurang_5_menit.mp3"
-[[senin]]
-jam = "08:20"
-file = "1.mp3"
-[[senin]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+senin = [
+    { jam = "07:00", file = "upacara_kurang_5_menit.mp3" },
+    { jam = "08:20", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]
 
-# Selasa
-[[selasa]]
-jam = "07:00"
-file = "1.mp3"
-[[selasa]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+selasa = [
+    { jam = "07:00", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]
 
-# Rabu
-[[rabu]]
-jam = "07:00"
-file = "1.mp3"
-[[rabu]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+rabu = [
+    { jam = "07:00", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]
 
-# Kamis
-[[kamis]]
-jam = "07:00"
-file = "1.mp3"
-[[kamis]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+kamis = [
+    { jam = "07:00", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]
 
-# Sabtu
-[[sabtu]]
-jam = "07:00"
-file = "1.mp3"
-[[sabtu]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+sabtu = [
+    { jam = "07:00", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]
 
-[[jumat]]
-jam = "07:00"
-file = "1.mp3"
-[[jumat]]
-jam = "16:30"
-file = "akhir_pelajaran.mp3"
+jumat = [
+    { jam = "07:00", file = "1.mp3" },
+    { jam = "16:30", file = "akhir_pelajaran.mp3" },
+]

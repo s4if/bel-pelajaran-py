@@ -27,6 +27,8 @@ class BellsModel(QAbstractTableModel):
         super().__init__(parent)
         self._rows = bells if isinstance(bells, list) else list(bells or ())
         self._highlighted_row: int | None = None
+        self._sort_column: int | None = None
+        self._sort_order = Qt.SortOrder.AscendingOrder
 
     @property
     def bells(self) -> tuple[Bell, ...]:
@@ -36,6 +38,11 @@ class BellsModel(QAbstractTableModel):
         """Display and directly edit the supplied timetable day list."""
         self.beginResetModel()
         self._rows = bells
+        if self._sort_column is not None:
+            self._rows.sort(
+                key=self._sort_key(self._sort_column),
+                reverse=self._sort_order == Qt.SortOrder.DescendingOrder,
+            )
         self._highlighted_row = None
         self.endResetModel()
 
@@ -44,6 +51,11 @@ class BellsModel(QAbstractTableModel):
         self.beginInsertRows(QModelIndex(), position, position)
         self._rows.insert(position, bell)
         self.endInsertRows()
+        if self._sort_column is not None:
+            self.sort(self._sort_column, self._sort_order)
+            position = next(
+                row for row, current in enumerate(self._rows) if current is bell
+            )
         self.changed.emit()
         return position
 
@@ -89,6 +101,54 @@ class BellsModel(QAbstractTableModel):
                     self.index(changed_row, self.columnCount() - 1),
                     [Qt.ItemDataRole.BackgroundRole],
                 )
+
+    def sort(
+        self,
+        column: int,
+        order: Qt.SortOrder = Qt.SortOrder.AscendingOrder,
+    ) -> None:
+        """Sort rows by time or sound while retaining their backing-list identity."""
+        if not 0 <= column < len(self.HEADERS):
+            return
+
+        self._sort_column = column
+        self._sort_order = order
+        old_rows = list(self._rows)
+        sorted_old_indexes = sorted(
+            range(len(old_rows)),
+            key=lambda row: self._sort_key(column)(old_rows[row]),
+            reverse=order == Qt.SortOrder.DescendingOrder,
+        )
+        if sorted_old_indexes == list(range(len(old_rows))):
+            return
+
+        new_position = {
+            old_row: new_row for new_row, old_row in enumerate(sorted_old_indexes)
+        }
+        old_highlight = self._highlighted_row
+        from_indexes = [
+            self.index(old_row, table_column)
+            for old_row in range(len(old_rows))
+            for table_column in range(self.columnCount())
+        ]
+        to_indexes = [
+            self.index(new_position[old_row], table_column)
+            for old_row in range(len(old_rows))
+            for table_column in range(self.columnCount())
+        ]
+
+        self.layoutAboutToBeChanged.emit()
+        self._rows[:] = [old_rows[old_row] for old_row in sorted_old_indexes]
+        self.changePersistentIndexList(from_indexes, to_indexes)
+        if old_highlight is not None:
+            self._highlighted_row = new_position[old_highlight]
+        self.layoutChanged.emit()
+
+    @staticmethod
+    def _sort_key(column: int):
+        if column == 0:
+            return lambda bell: bell.jam
+        return lambda bell: bell.file.casefold()
 
     def rowCount(self, parent=QModelIndex()) -> int:  # noqa: N802 - Qt API
         return 0 if parent.isValid() else len(self._rows)
@@ -173,6 +233,8 @@ class BellsModel(QAbstractTableModel):
             index,
             [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole],
         )
+        if self._sort_column is not None:
+            self.sort(self._sort_column, self._sort_order)
         self.changed.emit()
         return True
 

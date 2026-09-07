@@ -44,6 +44,32 @@ def test_model_edits_backing_list_and_emits_changed():
     assert len(changes) == 4
 
 
+def test_model_sorts_by_time_in_both_directions():
+    bells = [
+        Bell("11:45", "akhir.mp3"),
+        Bell("07:00", "awal.mp3"),
+        Bell("09:30", "istirahat.mp3"),
+    ]
+    model = BellsModel(bells)
+
+    model.sort(0, Qt.SortOrder.AscendingOrder)
+    assert [bell.jam for bell in bells] == ["07:00", "09:30", "11:45"]
+
+    model.sort(0, Qt.SortOrder.DescendingOrder)
+    assert [bell.jam for bell in bells] == ["11:45", "09:30", "07:00"]
+
+
+def test_active_time_sort_is_kept_when_rows_change():
+    model = BellsModel([Bell("09:30", "istirahat.mp3"), Bell("07:00", "awal.mp3")])
+    model.sort(0, Qt.SortOrder.AscendingOrder)
+
+    inserted_row = model.insert_bell(Bell("08:15", "masuk.mp3"))
+    model.setData(model.index(0, 0), "10:00")
+
+    assert inserted_row == 1
+    assert [bell.jam for bell in model.bells] == ["08:15", "09:30", "10:00"]
+
+
 def test_model_rejects_invalid_time():
     bells = [Bell("07:00", "1.mp3")]
     model = BellsModel(bells)
