@@ -149,18 +149,50 @@ AppImage harus dibuat pada Linux. Semua perintah dijalankan dari root proyek.
 
 ### Windows — EXE (folder/onedir)
 
-Prerequisite: Python 3.12 + uv. Jalankan lewat cmd atau PowerShell, bukan WSL:
+Build harus dijalankan di Windows native (cmd/PowerShell, **bukan WSL**).
+PyInstaller tidak bisa cross-compile dari Linux.
+
+**1. Persiapan sekali saja**
+
+- Install [Git for Windows](https://git-scm.com/download/win).
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/) — di
+  PowerShell:
+
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+
+  Tidak perlu memasang Python manual: uv membaca `.python-version` dan
+  mengunduh Python 3.12 otomatis saat `uv sync`.
+- Setelah instalasi, buka jendela PowerShell **baru** agar `uv` masuk ke `PATH`.
+
+**2. Clone dan build**
 
 ```powershell
-uv sync --all-extras --group dev
+git clone https://github.com/s4if/bel-pelajaran-py.git
+cd bel-pelajaran-py
+uv sync --all-extras --group dev          # venv + seluruh dependensi + PyInstaller
 uv run python scripts/build_packages.py windows
 ```
 
-Hasil utama:
-`dist/windows/bel-pelajaran/bel-pelajaran.exe`. Seluruh folder
-`bel-pelajaran/` adalah satu aplikasi dan harus didistribusikan bersama; EXE
+Build memakan beberapa menit saat pertama kali (PyInstaller mem-payload Qt).
+Semua yang dibutuhkan bundle — `assets/` (termasuk `.ico`), `configs/`, dan
+`run_gui.py` — sudah ada di repo, jadi clone bersih cukup untuk build.
+
+**3. Hasil dan uji cepat**
+
+Hasil: `dist\windows\bel-pelajaran\bel-pelajaran.exe`. Seluruh folder
+`bel-pelajaran\` adalah satu aplikasi dan harus didistribusikan bersama; EXE
 bergantung pada file internal di sebelahnya. Python dan Qt tidak perlu dipasang
 di komputer tujuan.
+
+Sebelum disebarkan, jalankan sekali di mesin build: aplikasi terbuka, self-test
+audio sukses, Mulai/Berhenti dan tray bekerja. Catatan: EXE belum ditandatangani
+code-signing, jadi Windows SmartScreen dapat menampilkan peringatan saat
+pertama dijalankan — pilih **Run anyway**.
+
+Untuk build ulang setelah `git pull`, cukup ulangi dua perintah terakhir
+(`uv sync --all-extras --group dev` memastikan dependensi baru ikut terpasang).
 
 ### Linux — Debian `.deb`
 
