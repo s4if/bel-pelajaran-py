@@ -6,7 +6,7 @@
 > session context**; a human *or* an AI coding agent should be able to read this
 > and implement it end-to-end.
 >
-> **Status of the project today (updated 2026-09-04).** Phase 0 and Phase 1 are
+> **Status of the project today (updated 2026-09-07).** Phase 0 and Phase 1 are
 > **done and tested**. Phase 2 **Steps 0–6 are implemented**, and the planned
 > Step 9 polish is also substantially complete. The GUI can create/open/edit/save
 > schedules, run the bell, preview sounds, control volume, show a live countdown,
@@ -14,10 +14,14 @@
 > its sound-directory setting (`sound_dir`): an empty value uses bundled
 > `assets/`; a non-empty value must be absolute. Missing paths/files no longer
 > destroy or reject loaded `file` values; filesystem checks happen immediately
-> before Start and before editing a row. The suite currently has **56 passing
+> before Start and before editing a row. The suite currently has **62 passing
 > tests**. User-writable schedules now use platform-standard configuration
-> directories (XDG on Linux, APPDATA on Windows). Step 7 remains optional;
-> **Step 8 (packaging and clean-machine validation) is the next required step**.
+> directories (XDG on Linux, APPDATA on Windows). Step 7 remains optional.
+> **Step 8 packaging automation is implemented**: `scripts/build_packages.py`
+> builds the Windows EXE folder, Debian `.deb`, and AppImage; Linux artifacts
+> ship a desktop entry plus AppStream metainfo; first run copies the factory
+> schedule to the user config directory. **Clean-machine validation of each
+> artifact is the remaining required step before Phase 2 is done.**
 
 ---
 
@@ -437,7 +441,7 @@ Add `tests/test_scheduler.py`: a dummy backend + `on_fire` fires; `tick()` calls
 | **Saving TOML drops comments / reformats** | Use `tomli_w`; document that saving normalizes the file. If comment-preservation is later required, swap to `tomlkit` — out of MVP scope. |
 | **Windows `--add-data` separator is `;` not `:`** | The build script picks by `os.name` (§8). |
 | **`schedule` fires by wall-clock weekday** | Already handled (`WEEKDAY_TOKEN`). `next_bell_today()` already uses `datetime.weekday()`. Nothing to do. |
-| **Frozen exe missing Qt multimedia plugins / silent on Linux** | `--collect-submodules PySide6` (and ensure `PySide6/Qt/plugins/multimedia` is collected). The self-test is the safety net on the frozen Linux build. |
+| **Frozen exe missing Qt multimedia plugins / silent on Linux** | Targeted `--hidden-import PySide6.QtMultimedia` / `PySide6.QtSvg` (implemented in `scripts/build_packages.py`); PyInstaller's PySide6 hooks collect the required Qt libraries and plugins while skipping unused heavy components (WebEngine, QML, Quick3D, Designer). The self-test is the safety net on the frozen Linux build. |
 | **Qt Multimedia API churn around 6.2** | Verify the exact `QMediaPlayer`/`QAudioOutput` API against the installed PySide6 version (`player.playbackState()`, `errorOccurred(code,msg)`); don't trust memory. |
 
 ---
@@ -800,27 +804,30 @@ Run during dev: `uv run python -m app.gui`  (or `uv run bel-gui`).
 
 ## 8. Packaging to EXE (PyInstaller + PySide6 + Qt Multimedia)
 
+> **Superseded by implementation.** Packaging now lives in
+> `scripts/build_packages.py` — run `uv run python scripts/build_packages.py
+> windows|deb|appimage|linux` (see the README for artifacts and prerequisites).
+> The original sketch is kept only to explain the model.
+
 `app/paths.py` already handles `sys._MEIPASS`, so bundled `assets/` and `configs/`
 resolve automatically. PySide6 brings its own PyInstaller hook (covers Qt plugins).
 
-Cross-platform build (`scripts/build_exe.py`):
-```python
-import subprocess, sys, os
-sep = ";" if os.name == "nt" else ":"
-cmd = [
-    sys.executable, "-m", "PyInstaller", "--noconfirm",
-    "--name", "bel-gui",
-    "--windowed",                                  # no console (use --console in dev for logs)
-    f"--add-data=assets{sep}assets",
-    f"--add-data=configs{sep}configs",
-    "--hidden-import=PySide6",
-    "--hidden-import=PySide6.QtMultimedia",
-    "--collect-submodules=PySide6",
-    "run_gui.py",                                  # top-level launcher -> app.gui.__main__:main
-]
-subprocess.check_call(cmd)
-```
-- Output: `dist/bel-gui/` (folder — recommended). Add `--onefile` for a single file.
+Key details of the implemented build:
+- PyInstaller runs `--onedir --windowed` on `run_gui.py` (top-level launcher →
+  `app.gui.__main__:main`) with **targeted hidden imports**
+  (`PySide6.QtMultimedia` for lazily imported audio, `PySide6.QtSvg` for the
+  SVG app/tray icons) instead of `--collect-submodules PySide6`, keeping unused
+  heavy components (WebEngine, QML, Quick3D, Designer) out of the bundle.
+- Windows adds `assets/`, `configs/`, `LICENSE`, and `app_icon.ico`; Linux
+  installs the payload under `/usr/lib/bel-pelajaran`, factory resources under
+  `/usr/share/bel-pelajaran`, plus the desktop entry
+  (`/usr/share/applications`), AppStream metainfo (`/usr/share/metainfo`), and
+  hicolor SVG icon. The AppImage mirrors the same layout; a launcher script sets
+  `BEL_PELAJARAN_RESOURCE_DIR`.
+- First launch copies `configs/konfig.toml` to the user schedules directory
+  (`app/gui/first_run.py`); an existing user file is never overwritten.
+- Output: `dist/windows/bel-pelajaran/`, `dist/linux/bel-pelajaran_<versi>_<ars>.deb`,
+  `dist/linux/Bel-Pembelajaran-<versi>-<ars>.AppImage`.
 - **Linux frozen build caveat:** the exe links the *host's* GStreamer (PyInstaller
   can't bundle it). The startup self-test is therefore *especially* important on
   the frozen Linux build — confirm it passes on the target image.

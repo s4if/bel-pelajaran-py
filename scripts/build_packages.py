@@ -68,10 +68,14 @@ def pyinstaller_payload(*, target: str) -> Path:
         str(work / "work"),
         "--specpath",
         str(work / "spec"),
+        # These modules are imported lazily or needed for SVG application/tray
+        # icons. PyInstaller's PySide6 hooks collect their Qt libraries and
+        # plugins; collecting every PySide6 submodule would also bundle large,
+        # unused components such as WebEngine, QML, Quick3D, and Designer.
         "--hidden-import",
         "PySide6.QtMultimedia",
-        "--collect-submodules",
-        "PySide6",
+        "--hidden-import",
+        "PySide6.QtSvg",
     ]
 
     if target == "windows":
@@ -149,6 +153,11 @@ def install_linux_tree(root: Path, payload: Path, *, appimage: bool) -> None:
     applications = root / "usr" / "share" / "applications"
     applications.mkdir(parents=True, exist_ok=True)
     shutil.copy2(desktop_source, applications / desktop_source.name)
+
+    appdata_source = ROOT / "packaging" / "linux" / f"{APP_ID}.appdata.xml"
+    metainfo = root / "usr" / "share" / "metainfo"
+    metainfo.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(appdata_source, metainfo / appdata_source.name)
 
     icon_dir = root / "usr" / "share" / "icons" / "hicolor" / "scalable" / "apps"
     icon_dir.mkdir(parents=True, exist_ok=True)

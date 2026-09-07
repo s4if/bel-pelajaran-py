@@ -41,7 +41,7 @@ bel-pelajaran-py/
 ├── assets/              # file suara .mp3
 ├── tests/               # pytest
 ├── scripts/             # builder EXE, DEB, dan AppImage
-├── packaging/linux/     # desktop entry untuk paket Linux
+├── packaging/linux/     # desktop entry + AppStream metainfo untuk paket Linux
 ├── run.py               # launcher tipis CLI lama
 ├── run_gui.py           # entrypoint GUI untuk PyInstaller
 ├── pyproject.toml       # konfigurasi proyek (uv) — sumber kebenaran
@@ -88,6 +88,8 @@ uv run bel test-sound 1.mp3                 # putar satu suara (cek audio)
 uv run bel start configs/konfig.toml        # jalankan bel (Ctrl+C untuk berhenti)
 uv run bel start configs/konfig.toml --dry-run   # simulasi: jadwal jalan tanpa suara
 uv run bel start configs/konfig.toml --volume 0.8
+uv run bel start configs/konfig.toml --force     # tetap jalan meski ada error validasi
+uv run bel start configs/konfig.toml -v          # logging DEBUG
 
 # GUI: kelola jadwal, Mulai/Berhenti, pratinjau suara, volume, dan system tray
 uv run bel-gui
@@ -190,9 +192,12 @@ Untuk membuat kedua format Linux dari satu build PyInstaller:
 uv run python scripts/build_packages.py linux --appimagetool /path/appimagetool
 ```
 
-Paket Linux menaruh program di `/usr/lib/bel-pelajaran` dan resource factory
-di `/usr/share/bel-pelajaran`. AppImage menggunakan susunan yang sama di dalam
-image. Launcher mengatur `BEL_PELAJARAN_RESOURCE_DIR`; Windows menyimpan resource
+Paket Linux menaruh program di `/usr/lib/bel-pelajaran`, resource factory
+di `/usr/share/bel-pelajaran`, serta desktop entry, ikon SVG hicolor, dan
+AppStream metainfo (di `/usr/share/applications`, `/usr/share/icons/hicolor`,
+`/usr/share/metainfo`) agar aplikasi muncul di menu dan software center.
+AppImage menggunakan susunan yang sama di dalam image. Launcher mengatur
+`BEL_PELAJARAN_RESOURCE_DIR`; Windows menyimpan resource
 di bundle PyInstaller.
 
 Saat GUI pertama kali dibuka, `configs/konfig.toml` bawaan disalin menjadi
