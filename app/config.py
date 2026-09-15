@@ -6,9 +6,7 @@ Preserves the original legacy format:
     jam = '07:00'
     file = 'upacara_kurang_5_menit.mp3'
 
-A day may be omitted entirely. As in the original script, ``rabu`` / ``kamis`` /
-``sabtu`` inherit from ``selasa`` when absent, so a normal week needs only
-``senin`` + ``selasa`` + ``jumat``.
+A day may be omitted entirely; omitted days have no bells.
 
 Validation reports *every* problem in one pass (time format, missing sound
 file, duplicate times) instead of stopping at the first error like the old
@@ -24,13 +22,6 @@ from pathlib import Path
 
 from .models import DAYS, Bell, Timetable
 from .paths import assets_dir
-
-# Days that, when missing, copy another day's bells.
-INHERIT_FROM: dict[str, str] = {
-    "rabu": "selasa",
-    "kamis": "selasa",
-    "sabtu": "selasa",
-}
 
 
 @dataclass
@@ -61,20 +52,15 @@ def parse_timetable(data: dict) -> Timetable:
     """Build a Timetable from a parsed TOML dict (used by tests)."""
     raw: dict[str, list[Bell]] = {}
     for day in DAYS:
-        entries = data.get(day)
-        if not entries:
+        if day not in data:
             continue
+        entries = data[day]
         bells: list[Bell] = []
         for e in entries:
             bells.append(Bell(jam=str(e["jam"]), file=str(e["file"])))
         raw[day] = bells
 
-    # apply inheritance: e.g. rabu/kamis/sabtu <- selasa
-    for day, src in INHERIT_FROM.items():
-        if day not in raw and src in raw:
-            raw[day] = list(raw[src])
-
-    return Timetable(days=raw)
+    return Timetable(days=raw, sound_dir=str(data.get("sound_dir", "") or "").strip())
 
 
 def is_valid_time(s: str) -> bool:
@@ -87,12 +73,13 @@ def is_valid_time(s: str) -> bool:
 
 
 def validate_timetable(timetable: Timetable) -> ValidationResult:
-    """Check time format, sound-file existence and duplicate times.
+    """Check schedule values without touching the filesystem.
 
-    Collects ALL errors. Does not raise.
+    Sound locations are deliberately verified only immediately before starting
+    playback or editing a row, so a schedule with a stale path can still open
+    and retain every configured filename.
     """
     result = ValidationResult()
-    assets = assets_dir()
     for day, bells in timetable:
         seen: dict[str, int] = {}
         for bell in bells:
@@ -106,15 +93,6 @@ def validate_timetable(timetable: Timetable) -> ValidationResult:
                     )
                 )
                 continue
-            if not (assets / bell.file).is_file():
-                result.errors.append(
-                    ValidationError(
-                        day=day,
-                        jam=bell.jam,
-                        file=bell.file,
-                        message=f"File suara tidak ditemukan: {bell.file!r}",
-                    )
-                )
             seen[bell.jam] = seen.get(bell.jam, 0) + 1
 
         for t, count in seen.items():
@@ -124,6 +102,54 @@ def validate_timetable(timetable: Timetable) -> ValidationResult:
                         day=day,
                         jam=t,
                         message=f"Jam {t!r} muncul {count}× di hari {day} (duplikat)",
+                    )
+                )
+    return result
+
+
+def resolve_sound_dir(timetable: Timetable) -> Path:
+    """Resolve the configured absolute sound path or the bundled default."""
+    configured = timetable.sound_dir.strip()
+    if not configured:
+        return assets_dir().resolve()
+    return Path(configured).expanduser().resolve()
+
+
+def validate_sound_files(timetable: Timetable) -> ValidationResult:
+    """Verify the configured sound directory and every referenced audio file."""
+    result = ValidationResult()
+    configured = timetable.sound_dir.strip()
+    if configured and not Path(configured).expanduser().is_absolute():
+        result.errors.append(
+            ValidationError(
+                day="umum",
+                message="Folder suara harus menggunakan path absolut.",
+            )
+        )
+        return result
+
+    sound_dir = resolve_sound_dir(timetable)
+    if not sound_dir.is_dir():
+        result.errors.append(
+            ValidationError(
+                day="umum",
+                message=f"Folder suara tidak ditemukan: {sound_dir}",
+            )
+        )
+        return result
+
+    for day, bells in timetable:
+        for bell in bells:
+            if not (sound_dir / bell.file).is_file():
+                result.errors.append(
+                    ValidationError(
+                        day=day,
+                        jam=bell.jam,
+                        file=bell.file,
+                        message=(
+                            f"File suara tidak ditemukan: {bell.file!r} "
+                            f"di {sound_dir}"
+                        ),
                     )
                 )
     return result

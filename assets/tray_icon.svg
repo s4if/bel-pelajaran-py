@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bel Pembelajaran tray icon">
+  <circle cx="32" cy="32" r="30" fill="#2563eb"/>
+  <path d="M32 10a5 5 0 0 1 5 5v2c8 2 13 10 13 20v7l5 7c2 3 0 6-4 6H13c-4 0-6-3-4-6l5-7v-7c0-10 5-18 13-20v-2a5 5 0 0 1 5-5Z" fill="#fbbf24" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M25 58h14c-1 4-3 6-7 6s-6-2-7-6Z" fill="#fbbf24"/>
+  <circle cx="32" cy="37" r="4" fill="#1e3a8a"/>
+  <path d="M32 41v7" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
+</svg>

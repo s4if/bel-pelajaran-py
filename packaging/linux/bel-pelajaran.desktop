@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Bel Pembelajaran
+Comment=Kelola dan jalankan jadwal bel sekolah
+Exec=bel-pelajaran
+Icon=bel-pelajaran
+Terminal=false
+Categories=Education;Utility;
+StartupNotify=true

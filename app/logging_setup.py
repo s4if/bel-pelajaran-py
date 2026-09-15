@@ -1,4 +1,4 @@
-"""Logging setup: console + rotating file under the user data dir."""
+"""Logging setup: console + rotating file under the user state directory."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ _FMT = logging.Formatter(
 def setup_logging(verbose: bool = False) -> logging.Logger:
     """Idempotent: safe to call multiple times.
 
-    Logs to console (INFO, or DEBUG with ``-v``) and to a rotating file
-    (``~/.bel-pelajaran/logs/bel.log``, always DEBUG, 1 MB x 3).
+    Logs to console (INFO, or DEBUG with ``-v``) and to a rotating file in the
+    platform-standard per-user state directory, always DEBUG, 1 MB x 3.
     """
     logger = logging.getLogger("app")
     if logger.handlers:  # already configured

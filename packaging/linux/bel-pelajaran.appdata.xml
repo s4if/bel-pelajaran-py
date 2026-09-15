@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.s4if.bel-pelajaran</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Bel Pembelajaran</name>
+  <summary>Kelola dan jalankan jadwal bel sekolah</summary>
+  <developer id="io.github.s4if">
+    <name>s4if</name>
+  </developer>
+
+  <description>
+    <p>
+      Bel Pembelajaran adalah aplikasi desktop untuk menyusun jadwal bel
+      sekolah dan memutar suara secara otomatis pada waktu yang ditentukan.
+    </p>
+    <p>
+      Jadwal dapat dibuat dan diubah tanpa menyunting TOML secara manual.
+      Aplikasi juga menyediakan pratinjau suara, pengaturan volume, status bel
+      berikutnya, dan kontrol melalui system tray.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">bel-pelajaran.desktop</launchable>
+  <provides>
+    <binary>bel-pelajaran</binary>
+  </provides>
+  <categories>
+    <category>Education</category>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+</component>
